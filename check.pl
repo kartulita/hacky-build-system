@@ -60,8 +60,10 @@ sub check {
 	my $bracketed;
 	my $params;
 	my $args;
-	$fn =~ /^(\(?)function\ ?\(([^\)]*)\)\ ?{$/ and $bracketed = $1 eq '(' and $params = $2 or
+	$fn =~ /^(\(?)function\ ?\(([^\)]*)\)\ ?{$/ or
 		return 'Function wrapper not found';
+	$bracketed = $1 eq '(';
+	$params = $2;
 	$strict =~ /^\s*(['"])use strict\1;$/ or
 		return 'Strict mode string does not immediately follow function wrapper';
 	$last =~ /^}(\)?)\(([^\)]*)\);$/ or
@@ -73,7 +75,7 @@ sub check {
 		my @p = $params =~ /[^\s,]+/g;
 		my @a = $args =~ /[^\s,]+/g;
 		if (scalar @p != scalar @a) {
-			return 'Parameter count mismatch? ($params) <- ($args)';
+			return "Parameter count mismatch? ($params) <- ($args)";
 		}
 		for my $i (0 .. $#p) {
 			if ($p[$i] ne $a[$i] and "window.$p[$i]" ne $a[$i]) {
