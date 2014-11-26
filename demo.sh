@@ -1,4 +1,5 @@
 #!/bin/bash
+#DEPRECATED, use ngdoc
 
 set -euo pipefail
 

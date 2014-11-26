@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+#DEPRECATED, use ngdoc
 
 use strict;
 use warnings;
