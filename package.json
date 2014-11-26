@@ -1,0 +1,20 @@
+{
+	"name": "hacky-build-system",
+	"version": "1.0.0",
+	"description": "Hacky build system",
+	"main": "library",
+	"dependencies": {
+		"angular-jsdoc": "^0.1.1",
+		"http-server": "^0.7.3",
+		"jsdoc": "^3.3.0-alpha10",
+		"ng-annotate": "^0.11.0",
+		"uglify-js": "^2.4.15",
+		"bower": "^1.3.12"
+	},
+	"devDependencies": {},
+	"scripts": {
+		"test": "make test"
+	},
+	"author": "Mark K Cowan",
+	"license": "Private, no derivatives, no distribution, no modifications"
+}
