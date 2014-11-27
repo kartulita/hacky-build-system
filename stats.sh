@@ -36,35 +36,50 @@ function table {
 	echo ""
 }
 
-###
+################################################################################
+
 echo -e "\n\e[1mSubmodules\e[0m\n"
 
 declare SUBS="$(
-	echo -e "Module\tLines\tChars"
+	echo -e "Module\tLines\tChars\tMinified\t%\t"
 
-	declare MOD
+	declare MOD CHARS MINI MINIFIED
 	for MOD in src/*/
 	do
-		(
+		{
 			echo "$MOD" | perl -pe 's!^.*src/([^/]+)/?$!$1!'
 			find $MOD -name "$FILTER" -exec cat {} \; | wc -l
-			find $MOD -name "$FILTER" -exec cat {} \; | wc -c
-		) | tr "\n" "\t"
+			CHARS=$(find $MOD -name "$FILTER" -exec cat {} \; | wc -c)
+			echo "$CHARS"
+			declare MINIFIED="${MOD%%/}"
+			MINIFIED="out/${MINIFIED##*/}.js"
+			if [ -e "$MINIFIED" ]; then
+				MINI=$(wc -c < "$MINIFIED")
+				echo "$MINI"
+				echo "100 * $MINI / $CHARS" | bc
+			else
+				echo ""
+				echo ""
+			fi
+		} | tr "\n" "\t"
 		echo ""
 	done
 )"
 
-declare LOC="$(echo "$SUBS" | tail -n +2 | cut -f2 | paste -sd+ | tee /dev/stderr | bc)"
+declare LOC="$(echo "$SUBS" | tail -n +2 | cut -f2 | paste -sd+ | bc)"
 declare CHARS="$(echo "$SUBS" | tail -n +2 | cut -f3 | paste -sd+ | bc)"
+declare MINI="$(echo "$SUBS" | tail -n +2 | cut -f4 | paste -sd+ | sed -e s/\++/+/g | bc)"
+declare PC="$(echo "100 * $MINI / $CHARS" | sed -e s/\++/+/g | bc)"
 
 (
 	echo "$SUBS"
-	echo -e "TOTAL\t$LOC\t$CHARS\t"
+	echo -e "TOTAL\t$LOC\t$CHARS\t$MINI\t$PC\t"
 ) | table
 
-unset SUBS LOC CHARS
+unset SUBS LOC CHARS MINI PC
 
-###
+################################################################################
+
 declare RANKS=10
 
 echo -e "\n\e[1mProject statistics - top $RANKS\e[0m\n"
@@ -100,7 +115,8 @@ paste -d"	" \
 
 unset RANKS RANKLIST LOC CHARS LONGLINES
 
-###
+################################################################################
+
 declare COMMITS=$(git log --all --oneline | wc -l)
 echo -e "\n\e[1mGit graph ($COMMITS total commits)\e[0m\n"
 
