@@ -20,7 +20,8 @@ MODULES=$(patsubst $(SRCDIR)/%/module.js, $(JSDIR)/%.js, $(MODULEHEADERS))
 
 JSDOC=$(JSDOCDIR)/index.html
 
-SOURCES=$(wildcard $(patsubst %/module.js, %/*.js, $(MODULEHEADERS)))
+SOURCEPREDICATES=-name '*.js' -and -not -path '*/demos/*' -and -not -path '*/tests/*' -and -not -path '*/.*'
+SOURCES=$(shell find $(patsubst %/module.js, %/, $(MODULEHEADERS)) $(SOURCEPREDICATES))
 
 BUNDLE=$(JSDIR)/bundle.js
 
@@ -56,6 +57,8 @@ SHELL=bash
 	all deps bundle modules docs tags clean \
 	serve syntax syntax-loop test test-loop \
 	stats
+
+.SECONDEXPANSION:
 
 all: bundle modules docs tags
 	@true
@@ -128,10 +131,10 @@ $(TAGDIR)/bundle.html: | $(TAGDIR)
 $(BUNDLE): $(MODULES) | deps $(JSDIR)
 	build/concatenate.pl $^ | $(UGLIFY) > $@ || ($(RMF) $@; false)
 
-$(JSDIR)/%.js: $(SRCDIR)/%/*.js | deps $(JSDIR)
+$(JSDIR)/%.js: $$(shell find $(SRCDIR)/%/ $(SOURCEPREDICATES)) | deps $(JSDIR)
 	build/concatenate.pl $^ | $(NGANNOTATE) | $(UGLIFY) > $@ || ($(RMF) $@; false)
 
-$(JSDOCDIR)/index.html: $(SOURCES) | $(JSDOCDIR)
+$(JSDOC): $(SOURCES) | $(JSDOCDIR)
 	$(NPM_JSDOC) -r $(SRCDIR) -d $(JSDOCDIR) -c $(NPM_NGDOC_DIR)/conf.json -t $(NPM_NGDOC_DIR)/template
 
 diag:
