@@ -98,7 +98,7 @@ distclean: clean
 serve:
 	http-server ./ -p 8000 -s -i0 >/dev/null 2>&1
 
-stats:
+stats: all
 	build/stats.sh | less -r
 	
 $(NODE_MODULES):

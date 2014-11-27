@@ -43,48 +43,45 @@ function submodules {
 	echo -e "\n\e[1mSubmodules\e[0m\n"
 
 	local SUBS="$(
-		echo -e "Module\tLines\tChars\tMinified\t%\tGzip\t%\t"
+		echo -e "Module\tFiles\tLines\tChars\tMini\t%\tGzip\t%\t"
 
 		local MOD
 		for MOD in src/*/
 		do
-			(
-				echo "$MOD" | perl -pe 's!^.*src/([^/]+)/?$!$1!'
-				find $MOD -name "$FILTER" -exec cat {} \; | wc -l
-				local CHARS=$(find $MOD -name "$FILTER" -exec cat {} \; | wc -c)
-				echo "$CHARS"
-				local MINIFIED="${MOD%%/}"
-				MINIFIED="out/${MINIFIED##*/}.js"
-				if [ -e "$MINIFIED" ]; then
-					local MINI=$(wc -c < "$MINIFIED")
-					local GZIP=$(gzip $GZIP_LEVEL < "$MINIFIED" | wc -c)
-					echo "$MINI"
-					echo "100 * $MINI / $CHARS" | bc
-					echo "$GZIP"
-					echo "100 * $GZIP / $CHARS" | bc
-				else
-					echo ""
-					echo ""
-					echo ""
-				fi
-			) | tr "\n" "\t"
+			if ! [ -e "$MOD/module.js" ]; then
+				continue;
+			fi
+			local MODULE="$(echo "$MOD" | perl -pe 's!^.*src/([^/]+)/?$!$1!')"
+			local -a FILES=( $(find "$MOD" -name "$FILTER") )
+			local MINIFIED="$MOD"
+			MINIFIED="${MINIFIED%%/}"
+			MINIFIED="${MINIFIED##*/}"
+			MINIFIED="out/${MINIFIED}.js"
+
+			local COUNT="${#FILES[@]}"
+			local LOC="$(echo "${FILES[@]}" | xargs cat | wc -l)"
+			local CHARS=$(echo "${FILES[@]}" | xargs cat | wc -c)
+			local MINI="$(wc -c < "$MINIFIED")"
+			local MINIPC="$(echo "100 * $MINI / $CHARS" | bc)"
+			local GZIP="$(gzip $GZIP_LEVEL < "$MINIFIED" | wc -c)"
+			local GZIPPC="$(echo "100 * $GZIP / $CHARS" | bc)"
+			printf -- "%s\t" "$MODULE" "$COUNT" "$LOC" "$CHARS" "$MINI" "$MINIPC" "$GZIP" "$GZIPPC"
 			echo ""
 		done
 	)"
 
-	local LOC="$(echo "$SUBS" | tail -n +2 | cut -f2 | paste -sd+ | bc)"
-	local CHARS="$(echo "$SUBS" | tail -n +2 | cut -f3 | paste -sd+ | bc)"
-	local MINI="$(echo "$SUBS" | tail -n +2 | cut -f4 | paste -sd+ | sed -e s/\++/+/g | bc)"
+	local COUNT="$(echo "$SUBS" | tail -n +2 | cut -f2 | paste -sd+ | bc)"
+	local LOC="$(echo "$SUBS" | tail -n +2 | cut -f3 | paste -sd+ | bc)"
+	local CHARS="$(echo "$SUBS" | tail -n +2 | cut -f4 | paste -sd+ | bc)"
+	local MINI="$(wc -c < "$BUNDLE")"
 	local MINIPC="$(echo "100 * $MINI / $CHARS" | bc)"
-	local GZIP GZIPPC
-	if [ -e "$BUNDLE" ]; then
-		GZIP="$(gzip $GZIP_LEVEL < "$BUNDLE" | wc -c)"
-		GZIPPC="$(echo "100 * $GZIP / $CHARS" | bc)"
-	fi
+	local GZIP="$(gzip $GZIP_LEVEL < "$BUNDLE" | wc -c)"
+	local GZIPPC="$(echo "100 * $GZIP / $CHARS" | bc)"
 
 	(
 		echo "$SUBS"
-		echo -e "TOTAL\t$LOC\t$CHARS\t$MINI\t$MINIPC\t$GZIP\t$GZIPPC\t"
+		printf -- "%s\t" "TOTAL" "$COUNT" "$LOC" "$CHARS" "$MINI" "$MINIPC" "$GZIP" "$GZIPPC"
+		echo ""
 	) | table
 }
 
@@ -134,16 +131,13 @@ function commits {
 	git log --graph --all --oneline --decorate --full-history --color --pretty=format:"%x1b[31m%h%x09%x1b[32m%d%x1b[0m%x20%s"
 }
 
+################################################################################
+
 if !(($#)); then
-	submodules
-	project
-	commits
-else
-	while [ "$1" ]; do
-		"$1"
-		shift
-	done
+	set submodules project commits
 fi
 
-echo ""
-echo ""
+while (($#)); do
+	"$1"
+	shift
+done
