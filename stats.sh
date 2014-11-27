@@ -6,7 +6,6 @@ cd "$(dirname "$0")/../"
 
 declare FILTER='*.js'
 declare WIDTH=$(( $(stty size | cut -f2 -d\ ) - 2))
-declare BUNDLE="out/bundle.js"
 declare GZIP_LEVEL=--best
 
 function table {
@@ -52,35 +51,35 @@ function submodules {
 				continue;
 			fi
 			local MODULE="$(echo "$MOD" | perl -pe 's!^.*src/([^/]+)/?$!$1!')"
-			local -a FILES=( $(find "$MOD" -name "$FILTER") )
-			local MINIFIED="$MOD"
-			MINIFIED="${MINIFIED%%/}"
-			MINIFIED="${MINIFIED##*/}"
-			MINIFIED="out/${MINIFIED}.js"
+			local FILES="$(eval find "$MOD" "$SOURCEPREDICATES" | wc -l)"
+			local COMBINED="out/$MODULE.js"
+			local MINIFIED="out/$MODULE.min.js"
 
-			local COUNT="${#FILES[@]}"
-			local LOC="$(echo "${FILES[@]}" | xargs cat | wc -l)"
-			local CHARS=$(echo "${FILES[@]}" | xargs cat | wc -c)
+			local LOC="$(wc -l < "$COMBINED")"
+			local CHARS="$(wc -c < "$COMBINED")"
 			local MINI="$(wc -c < "$MINIFIED")"
 			local MINIPC="$(echo "100 * $MINI / $CHARS" | bc)"
 			local GZIP="$(gzip $GZIP_LEVEL < "$MINIFIED" | wc -c)"
 			local GZIPPC="$(echo "100 * $GZIP / $CHARS" | bc)"
-			printf -- "%s\t" "$MODULE" "$COUNT" "$LOC" "$CHARS" "$MINI" "$MINIPC" "$GZIP" "$GZIPPC"
+			printf -- "%s\t" "$MODULE" "$FILES" "$LOC" "$CHARS" "$MINI" "$MINIPC" "$GZIP" "$GZIPPC"
 			echo ""
 		done
 	)"
 
-	local COUNT="$(echo "$SUBS" | tail -n +2 | cut -f2 | paste -sd+ | bc)"
-	local LOC="$(echo "$SUBS" | tail -n +2 | cut -f3 | paste -sd+ | bc)"
-	local CHARS="$(echo "$SUBS" | tail -n +2 | cut -f4 | paste -sd+ | bc)"
-	local MINI="$(wc -c < "$BUNDLE")"
+	local COMBINED="out/bundle.js"
+	local MINIFIED="out/bundle.min.js"
+
+	local FILES="$(echo "$SUBS" | tail -n +2 | cut -f2 | paste -sd+ | bc)"
+	local LOC="$(wc -l < "$COMBINED")"
+	local CHARS="$(wc -c < "$COMBINED")"
+	local MINI="$(wc -c < "$MINIFIED")"
 	local MINIPC="$(echo "100 * $MINI / $CHARS" | bc)"
-	local GZIP="$(gzip $GZIP_LEVEL < "$BUNDLE" | wc -c)"
+	local GZIP="$(gzip $GZIP_LEVEL < "$MINIFIED" | wc -c)"
 	local GZIPPC="$(echo "100 * $GZIP / $CHARS" | bc)"
 
 	(
 		echo "$SUBS"
-		printf -- "%s\t" "TOTAL" "$COUNT" "$LOC" "$CHARS" "$MINI" "$MINIPC" "$GZIP" "$GZIPPC"
+		printf -- "%s\t" "TOTAL/BUNDLE" "$FILES" "$LOC" "$CHARS" "$MINI" "$MINIPC" "$GZIP" "$GZIPPC"
 		echo ""
 	) | table
 }

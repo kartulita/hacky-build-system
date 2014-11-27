@@ -15,7 +15,7 @@ function configure {
 	OUTDIR="out/tests"
 
 	# Source files
-	FILES=( "$SRCDIR"/*/*.js )
+	FILES=( "$OUTDIR"/bundle.js )
 
 	# Tests to include
 	TESTS=( "$SRCDIR"/*/tests/*.js )
