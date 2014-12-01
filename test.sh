@@ -266,6 +266,7 @@ function main {
 	trap stopServer EXIT
 
 	read -sn 1 CHAR
+
 	stopServer
 
 	if [ "$CHAR" == "q" ]; then
@@ -273,16 +274,4 @@ function main {
 	fi
 }
 
-if (( $# == 0 )); then
-	main || true
-elif [ "$1" == "--loop" ]; then
-	clear
-	echo -e "\e[1;37mTest loop.  Press 'q' or Ctrl+C to quit, any key to re-build tests.\e[0m"
-	echo ""
-	if ( main ); then
-		exec "$0" "$@"
-	fi
-else
-	echo "Unknown parameter: $@"
-	exit 1
-fi
+main

@@ -28,17 +28,12 @@ function syntaxCheck {
 		fi
 	done
 	echo -e "\e[1mSyntax check complete\e[0m"
+
+	read -sn 1 CHAR
+
+	if [ "$CHAR" == "q" ]; then
+		exit 127
+	fi
 }
 
-if (( $# > 0 )) && [ "$1" == "--loop" ]; then
-	shift
-	clear
-	if ( syntaxCheck "$@" ); then
-		read -sn 1 CHAR
-		if ! [ "$CHAR" == "q" ]; then
-			exec "$0" "--loop" "$@"
-		fi
-	fi
-else
-	syntaxCheck "$@"
-fi
+syntaxCheck "$@"

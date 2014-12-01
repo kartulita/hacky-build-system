@@ -74,14 +74,18 @@ deps: | $(NODE_MODULES) $(BOWER_COMPONENTS)
 syntax:
 	@syntax.sh $(SOURCES)
 
-syntax-loop:
-	@syntax.sh --loop $(SOURCES) || true
-
 test:
 	@test.sh
 
+syntax-loop:
+	@clear
+	@if make -s syntax; then exec make -s syntax-loop; fi
+	@clear
+
 test-loop:
-	@test.sh --loop || true
+	@clear
+	@if make -s test; then exec make -s test-loop; fi
+	@clear
 
 clean:
 	$(RMRF) $(CLEANDIRS) || true
