@@ -12,6 +12,7 @@ declare srcdir="${SRCDIR}"
 declare source_predicates="${SOURCEPREDICATES}"
 declare ngannotate="${NGANNOTATE}"
 declare uglify="${UGLIFY}"
+declare parallel=6
 
 function fmtOut {
 	while read line; do
@@ -43,7 +44,7 @@ function check {
 
 function batchCheck {
 	echo -e "\e[1mSyntax check starting\e[0m"
-	echo "${files[@]}" | xargs -n1 -P16 "${self}"
+	echo "${files[@]}" | xargs -n1 -P"${parallel}" "${self}"
 	echo -e "\e[1mSyntax check complete\e[0m"
 
 	repeater
