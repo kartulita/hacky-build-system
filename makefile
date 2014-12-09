@@ -51,10 +51,7 @@ export RMDIR=rmdir --ignore-fail-on-non-empty --
 SHELL=bash
 .SHELLFLAGS=-euo pipefail -c
 
-.PHONY: \
-	all deps bundle modules docs clean \
-	serve syntax syntax-loop test test-loop \
-	stats
+.PHONY: all deps bundle modules docs clean serve syntax test stats
 
 .SECONDEXPANSION:
 

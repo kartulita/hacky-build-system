@@ -14,8 +14,6 @@ function configure {
 	port=1337
 
 	cd "$(realpath "$(dirname "$0")/../")"
-	srcdir="src"
-	testdir="out/tests"
 
 	# Source files
 	files=( $(eval find "${srcdir}" ${source_predicates}) )
@@ -144,11 +142,11 @@ function sources {
 }
 
 function tests {
-	local filename testdir="test"
+	local filename testfiledir="test"
 	section "Tests"
-	mkdir -p "${testdir}/${testdir}"
+	mkdir -p "${testdir}/${testfiledir}"
 	for test in "${tests[@]}"; do
-		filename="${testdir}/$(makeFileName "$(echo "${test}" | sed -r 'y/\//_/')" | sed -r 's/\._//g')"
+		filename="${testfiledir}/$(makeFileName "$(echo "${test}" | sed -r 'y/\//_/')" | sed -r 's/\._//g')"
 		item "${filename}"
 		cp "${test}" "${testdir}/${filename}"
 		htmlbody+=( '<script src="'"${filename}"'"></script>' )
