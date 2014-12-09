@@ -1,13 +1,14 @@
-SRCDIR=src
-OUTDIR=out
-JSDIR=$(OUTDIR)
-DOCDIR=$(OUTDIR)/doc
-JSDOCDIR=$(DOCDIR)/jsdoc
-DOCSRCDIR=$(SRCDIR)/$(DOCDIR)
+export SRCDIR=src
+export OUTDIR=out
+export JSDIR=$(OUTDIR)
+export DOCDIR=$(OUTDIR)/doc
+export JSDOCDIR=$(DOCDIR)/jsdoc
+export DOCSRCDIR=$(SRCDIR)/$(DOCDIR)
+export TESTDIR=$(OUTDIR)/tests
 
 CLEANDIRS=$(OUTDIR)
 
-TITLE=Wheatley
+export TITLE=Wheatley
 
 PWD=$(shell pwd)
 
@@ -20,7 +21,7 @@ MODULES_MIN=$(MODULES:%.js=%.min.js)
 
 JSDOC=$(JSDOCDIR)/index.html
 
-export SOURCEPREDICATES=-name '*.js' -and -not -path '*/demos/*' -and -not -path '*/tests/*' -and -not -path '*/.*'
+export SOURCEPREDICATES=-type 'f' -name '*.js' -not -path '*/demos/*' -not -path '*/tests/*' -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/bower_components/*'
 SOURCES=$(shell find $(patsubst %/module.js, %/, $(MODULEHEADERS)) $(SOURCEPREDICATES))
 
 BUNDLE=$(JSDIR)/bundle.js
@@ -72,20 +73,10 @@ docs: $(JSDOC)
 deps: | $(NODE_MODULES) $(BOWER_COMPONENTS)
 
 syntax:
-	@syntax.sh $(SOURCES)
+	@syntax.sh
 
 test:
 	@test.sh
-
-syntax-loop:
-	@clear
-	@if make -s syntax; then exec make -s syntax-loop; fi
-	@clear
-
-test-loop:
-	@clear
-	@if make -s test; then exec make -s test-loop; fi
-	@clear
 
 clean:
 	$(RMRF) $(CLEANDIRS) || true

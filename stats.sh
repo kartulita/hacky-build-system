@@ -4,33 +4,33 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../"
 
-declare FILTER='*.js'
-declare WIDTH=$(( $(stty size | cut -f2 -d\ ) - 2))
-declare GZIP_LEVEL=--best
+declare width=$(( $(stty size | cut -f2 -d\ ) - 2))
+declare gzip_level=--best
+declare source_predicates="${SOURCEPREDICATES}"
 
 function table {
-	local HEAD=1
-	column -t -s"	" -o' | ' -c$WIDTH | \
-	while read LINE; do
-		if (( HEAD )); then
-			echo -n "+"; printf -- '-%.0s' $(seq 1 $WIDTH); echo "+"
+	local head=1
+	column -t -s"	" -o' | ' -c${width} | \
+	while read line; do
+		if (( head )); then
+			echo -n "+"; printf -- '-%.0s' $(seq 1 ${width}); echo "+"
 			echo -ne "| "
 			echo -ne "\e[1m"
-			echo -n "$LINE"
+			echo -n "${line}"
 			echo -ne "\e[0m"
-			echo -e "\r\e[$((WIDTH + 1))C|"
-			echo -n "+"; printf -- '-%.0s' $(seq 1 $WIDTH); echo "+"
+			echo -e "\r\e[$((width + 1))C|"
+			echo -n "+"; printf -- '-%.0s' $(seq 1 ${width}); echo "+"
 		else
-			if [[ $LINE =~ TOTAL ]]; then
-				echo -n "+"; printf -- '-%.0s' $(seq 1 $WIDTH); echo "+"
+			if [[ ${line} =~ TOTAL ]]; then
+				echo -n "+"; printf -- '-%.0s' $(seq 1 ${width}); echo "+"
 			fi
-			echo -n "| $LINE"
-			echo -e "\r\e[$((WIDTH))C |"
+			echo -n "| ${line}"
+			echo -e "\r\e[$((width))C |"
 		fi
-		HEAD=0
+		head=0
 	done
 	echo -ne "+"
-	printf -- '-%.0s' $(seq 1 $WIDTH)
+	printf -- '-%.0s' $(seq 1 ${width})
 	echo -ne "+"
 
 	echo ""
@@ -41,45 +41,45 @@ function table {
 function submodules {
 	echo -e "\n\e[1mSubmodules\e[0m\n"
 
-	local SUBS="$(
+	local subs="$(
 		echo -e "Module\tFiles\tLines\tChars\tMini\t%\tGzip\t%\t"
 
-		local MOD
-		for MOD in src/*/
+		local mod
+		for mod in src/*/
 		do
-			if ! [ -e "$MOD/module.js" ]; then
+			if ! [ -e "${mod}/module.js" ]; then
 				continue;
 			fi
-			local MODULE="$(echo "$MOD" | perl -pe 's!^.*src/([^/]+)/?$!$1!')"
-			local FILES="$(eval find "$MOD" "$SOURCEPREDICATES" | wc -l)"
-			local COMBINED="out/$MODULE.js"
-			local MINIFIED="out/$MODULE.min.js"
+			local module="$(echo "${mod}" | perl -pe 's!^.*src/([^/]+)/?$!$1!')"
+			local files="$(eval find "${mod}" "${source_predicates}" | wc -l)"
+			local combined="out/${module}.js"
+			local minified="out/${module}.min.js"
 
-			local LOC="$(wc -l < "$COMBINED")"
-			local CHARS="$(wc -c < "$COMBINED")"
-			local MINI="$(wc -c < "$MINIFIED")"
-			local MINIPC="$(echo "100 * $MINI / $CHARS" | bc)"
-			local GZIP="$(gzip $GZIP_LEVEL < "$MINIFIED" | wc -c)"
-			local GZIPPC="$(echo "100 * $GZIP / $CHARS" | bc)"
-			printf -- "%s\t" "$MODULE" "$FILES" "$LOC" "$CHARS" "$MINI" "$MINIPC" "$GZIP" "$GZIPPC"
+			local lines_of_code="$(wc -l < "${combined}")"
+			local total_chars="$(wc -c < "${combined}")"
+			local mini="$(wc -c < "${minified}")"
+			local minipc="$(echo "100 * ${mini} / ${total_chars}" | bc)"
+			local gzip="$(gzip ${gzip_level} < "${minified}" | wc -c)"
+			local gzippc="$(echo "100 * ${gzip} / ${total_chars}" | bc)"
+			printf -- "%s\t" "${module}" "${files}" "${lines_of_code}" "${total_chars}" "${mini}" "${minipc}" "${gzip}" "${gzippc}"
 			echo ""
 		done
 	)"
 
-	local COMBINED="out/bundle.js"
-	local MINIFIED="out/bundle.min.js"
+	local combined="out/bundle.js"
+	local minified="out/bundle.min.js"
 
-	local FILES="$(echo "$SUBS" | tail -n +2 | cut -f2 | paste -sd+ | bc)"
-	local LOC="$(wc -l < "$COMBINED")"
-	local CHARS="$(wc -c < "$COMBINED")"
-	local MINI="$(wc -c < "$MINIFIED")"
-	local MINIPC="$(echo "100 * $MINI / $CHARS" | bc)"
-	local GZIP="$(gzip $GZIP_LEVEL < "$MINIFIED" | wc -c)"
-	local GZIPPC="$(echo "100 * $GZIP / $CHARS" | bc)"
+	local files="$(echo "${subs}" | tail -n +2 | cut -f2 | paste -sd+ | bc)"
+	local lines_of_code="$(wc -l < "${combined}")"
+	local total_chars="$(wc -c < "${combined}")"
+	local mini="$(wc -c < "${minified}")"
+	local minipc="$(echo "100 * ${mini} / ${total_chars}" | bc)"
+	local gzip="$(gzip ${gzip_level} < "${minified}" | wc -c)"
+	local gzippc="$(echo "100 * ${gzip} / ${total_chars}" | bc)"
 
 	(
-		echo "$SUBS"
-		printf -- "%s\t" "TOTAL/BUNDLE" "$FILES" "$LOC" "$CHARS" "$MINI" "$MINIPC" "$GZIP" "$GZIPPC"
+		echo "${subs}"
+		printf -- "%s\t" "TOTAL/BUNDLE" "${files}" "${lines_of_code}" "${total_chars}" "${mini}" "${minipc}" "${gzip}" "${gzippc}"
 		echo ""
 	) | table
 }
@@ -87,45 +87,45 @@ function submodules {
 ################################################################################
 
 function project {
-	local RANKS=10
+	local ranks=10
 
-	echo -e "\n\e[1mProject statistics - top $RANKS\e[0m\n"
+	echo -e "\n\e[1mProject statistics - top ${ranks}\e[0m\n"
 
-	local RANKLIST=( "Rank" $(seq 1 $RANKS) "TOTAL")
+	local rank_list=( "Rank" $(seq 1 ${ranks}) "TOTAL")
 
 	IFS=$'\n'
 
-	local -a LOC=( "$(
+	local -a lines_of_code=( "$(
 		echo -e "Lines of code"
-		(cd src && find . -name "$FILTER" -exec wc -l {} \;) | sort -n | tail -n $((RANKS+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
-		(cd src && find . -name "$FILTER" -exec cat {} \;) | wc -l
+		(cd src && eval find . "${source_predicates}" '-exec wc -l {} \;') | sort -n | tail -n $((ranks+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
+		(cd src && eval find . "${source_predicates}" '-exec cat {} \;') | wc -l
 	)" )
 
-	local -a CHARS=( "$(
+	local -a total_chars=( "$(
 		echo -e "Total characters"
-		(cd src && find . -name "$FILTER" -exec wc -c {} \;) | sort -n | tail -n $((RANKS+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
-		(cd src && find . -name "$FILTER" -exec cat {} \;) | wc -c
+		(cd src && eval find . "${source_predicates}" '-exec wc -c {} \;') | sort -n | tail -n $((ranks+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
+		(cd src && eval find . "${source_predicates}" '-exec cat {} \;') | wc -c
 	)" )
 
-	local -a LONGLINES=( "$(
+	local -a longest_line=( "$(
 		echo -e "Longest lines"
-		(cd src && find . -name "$FILTER" -exec wc -L {} \;) | sort -n | tail -n $((RANKS+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
-		(cd src && find . -name "$FILTER" -exec cat {} \;) | wc -L
+		(cd src && eval find . "${source_predicates}" '-exec wc -L {} \;') | sort -n | tail -n $((ranks+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
+		(cd src && eval find . "${source_predicates}" '-exec cat {} \;') | wc -L
 	)" )
 
 	paste -d"	" \
-		<(printf -- "%s\n" "${RANKLIST[@]}") \
-		<(printf -- "%s\n" "${LOC[@]}") \
-		<(printf -- "%s\n" "${CHARS[@]}") \
-		<(printf -- "%s\n" "${LONGLINES[@]}") \
+		<(printf -- "%s\n" "${rank_list[@]}") \
+		<(printf -- "%s\n" "${lines_of_code[@]}") \
+		<(printf -- "%s\n" "${total_chars[@]}") \
+		<(printf -- "%s\n" "${longest_line[@]}") \
 		| table
 }
 
 ################################################################################
 
 function commits {
-	local COMMITS=$(git log --all --oneline | wc -l)
-	echo -e "\n\e[1mGit graph ($COMMITS total commits)\e[0m\n"
+	local commits=$(git log --all --oneline | wc -l)
+	echo -e "\n\e[1mGit graph (${commits} total commits)\e[0m\n"
 
 	git log --graph --all --oneline --decorate --full-history --color --pretty=format:"%x1b[31m%h%x09%x1b[32m%d%x1b[0m%x20%s"
 }

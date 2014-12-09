@@ -2,26 +2,29 @@
 
 set -euo pipefail
 
-declare -i PORT=0
-declare SRCDIR OUTDIR
-declare -a FILES= TESTS= EXTERNALS= HTMLHEAD= HTMLBODY=
+source "$(dirname "$0")/repeater.sh"
+
+declare -i port=0
+declare srcdir="${SRCDIR}" testdir="${TESTDIR}"
+declare -a files= tests= externals= htmlhead= htmlbody=
+declare source_predicates="${SOURCEPREDICATES}"
 
 function configure {
 
-	PORT=1337
+	port=1337
 
 	cd "$(realpath "$(dirname "$0")/../")"
-	SRCDIR="src"
-	OUTDIR="out/tests"
+	srcdir="src"
+	testdir="out/tests"
 
 	# Source files
-	FILES=( $(eval find "$SRCDIR" $SOURCEPREDICATES) )
+	files=( $(eval find "${srcdir}" ${source_predicates}) )
 
 	# Tests to include
-	TESTS=( "$SRCDIR"/*/tests/*.js )
+	tests=( "${srcdir}"/*/tests/*.js )
 
 	# External dependencies (to download)
-	EXTERNALS=(
+	externals=(
 		'https://github.com/visionmedia/mocha/raw/master/mocha.css'
 		'https://github.com/visionmedia/mocha/raw/master/mocha.js'
 
@@ -44,14 +47,14 @@ function configure {
 
 	)
 
-	# HTML source
-	HTMLHEAD=(
+	# html source
+	htmlhead=(
 		'<meta charset="utf-8">'
 		'<title>Tests</title>'
 	)
 
-	# HTML source
-	HTMLBODY=(
+	# html source
+	htmlbody=(
 		'<div id="debug"></div>'
 		'<div id="mocha"><p><a href=".">Unit tests for Wheatley</a></p></div>'
 		'<div id="messages"></div>'
@@ -62,8 +65,8 @@ function configure {
 
 # For sources: module/file-name.js => module_file-name.js
 function makeFileName {
-	local FILENAME="$1"
-	echo -n "$(basename "$(dirname "$FILENAME")")_$(basename "$FILENAME")"
+	local filename="$1"
+	echo -n "$(basename "$(dirname "${filename}")")_$(basename "${filename}")"
 }
 
 function section {
@@ -80,116 +83,116 @@ function extra {
 }
 
 function dependencies {
-	local FILENAME NOINCLUDE DEPDIR="dep"
-	local -a PIDS=
+	local filename include depdir="dep"
+	local -a pids=
 	section 'Dependencies'
-	mkdir -p "$OUTDIR/$DEPDIR"
-	for EXT in "${EXTERNALS[@]}"; do
-		INCLUDE=1
-		if [[ "$EXT" =~ ^\+ ]]; then
-			EXT="${EXT:1:${#EXT}}"
-			INCLUDE=0
+	mkdir -p "${testdir}/${depdir}"
+	for ext in "${externals[@]}"; do
+		include=1
+		if [[ "${ext}" =~ ^\+ ]]; then
+			ext="${ext:1:${#ext}}"
+			include=0
 		fi
-		FILENAME="$DEPDIR/$(basename "$EXT")"
-		item "$FILENAME"
-		if ! [ -e "$OUTDIR/$FILENAME" ]; then
+		filename="${depdir}/$(basename "${ext}")"
+		item "${filename}"
+		if ! [ -e "${testdir}/${filename}" ]; then
 			extra "Downloading..."
-			wget "$EXT" -O "$OUTDIR/$FILENAME" --quiet & PIDS+=( $! )
+			wget "${ext}" -O "${testdir}/${filename}" --quiet & pids+=( $! )
 		fi
-		if (( INCLUDE )); then
-			if [[ "$FILENAME" =~ \.css$ ]]; then
-				HTMLHEAD+=( '<link rel="stylesheet" href="'"$FILENAME"'">' )
-			elif [[ "$FILENAME" =~ \.js$ ]]; then
-				HTMLBODY+=( '<script src="'"$FILENAME"'"></script>' )
+		if (( include )); then
+			if [[ "${filename}" =~ \.css$ ]]; then
+				htmlhead+=( '<link rel="stylesheet" href="'"${filename}"'">' )
+			elif [[ "${filename}" =~ \.js$ ]]; then
+				htmlbody+=( '<script src="'"${filename}"'"></script>' )
 			fi
 		fi
 	done
-	if (( ${#PIDS[@]} )); then
-		wait ${PIDS[@]} >/dev/null 2>&1 || true
+	if (( ${#pids[@]} )); then
+		wait ${pids[@]} >/dev/null 2>&1 || true
 	fi
 }
 
 function modules {
-	local FILENAME MODDIR="src"
+	local filename moddir="src"
 	section "Module headers"
-	mkdir -p "$OUTDIR/$MODDIR"
-	for SRC in "${FILES[@]}"; do
-		if ! [[ "$SRC" =~ module\.js$ ]]; then
+	mkdir -p "${testdir}/${moddir}"
+	for src in "${files[@]}"; do
+		if ! [[ "${src}" =~ module\.js$ ]]; then
 			continue
 		fi
-		FILENAME="$MODDIR/$(makeFileName "$SRC")"
-		item "$FILENAME"
-		cp "$SRC" "$OUTDIR/$FILENAME"
-		HTMLBODY+=( '<script src="'"$FILENAME"'"></script>' )
+		filename="${moddir}/$(makeFileName "${src}")"
+		item "${filename}"
+		cp "${src}" "${testdir}/${filename}"
+		htmlbody+=( '<script src="'"${filename}"'"></script>' )
 	done
-	HTMLBODY+=( "<script>mocha.setup('bdd');</script>" )
+	htmlbody+=( "<script>mocha.setup('bdd');</script>" )
 }
 
 function sources {
-	local FILENAME SRCDIR="src"
+	local filename srcdir="src"
 	section "Sources"
-	mkdir -p "$OUTDIR/$SRCDIR"
-	for SRC in "${FILES[@]}"; do
-		if [[ "$SRC" =~ module\.js$ ]]; then
+	mkdir -p "${testdir}/${srcdir}"
+	for src in "${files[@]}"; do
+		if [[ "${src}" =~ module\.js$ ]]; then
 			continue
 		fi
-		FILENAME="$SRCDIR/$(makeFileName "$SRC")"
-		item "$FILENAME"
-		cp "$SRC" "$OUTDIR/$FILENAME"
-		HTMLBODY+=( '<script src="'"$FILENAME"'"></script>' )
+		filename="${srcdir}/$(makeFileName "${src}")"
+		item "${filename}"
+		cp "${src}" "${testdir}/${filename}"
+		htmlbody+=( '<script src="'"${filename}"'"></script>' )
 	done
 }
 
 function tests {
-	local FILENAME TESTDIR="test"
+	local filename testdir="test"
 	section "Tests"
-	mkdir -p "$OUTDIR/$TESTDIR"
-	for TEST in "${TESTS[@]}"; do
-		FILENAME="$TESTDIR/$(makeFileName "$(echo "$TEST" | sed -r 'y/\//_/')" | sed -r 's/\._//g')"
-		item "$FILENAME"
-		cp "$TEST" "$OUTDIR/$FILENAME"
-		HTMLBODY+=( '<script src="'"$FILENAME"'"></script>' )
+	mkdir -p "${testdir}/${testdir}"
+	for test in "${tests[@]}"; do
+		filename="${testdir}/$(makeFileName "$(echo "${test}" | sed -r 'y/\//_/')" | sed -r 's/\._//g')"
+		item "${filename}"
+		cp "${test}" "${testdir}/${filename}"
+		htmlbody+=( '<script src="'"${filename}"'"></script>' )
 	done
 }
 
 function html {
-	local FILENAME HTMLDIR="."
+	local filename htmldir="."
 	section "Html interface"
-	mkdir -p "$OUTDIR/$HTMLDIR"
-	FILENAME="$HTMLDIR/index.html"
-	item "$FILENAME"
-	local -a HTML=(
+	mkdir -p "${testdir}/${htmldir}"
+	filename="${htmldir}/index.html"
+	item "${filename}"
+	local -a html=(
 		'<!DOCTYPE html>'
 		'<html>'
 		'<head>'
-		"${HTMLHEAD[@]}"
+		"${htmlhead[@]}"
 		'</head>'
 		'<body>'
-		"${HTMLBODY[@]}"
+		"${htmlbody[@]}"
 		'</body>'
 		'</html>'
 	)
-	printf -- "%s\n" "${HTML[@]}" > "$OUTDIR/$FILENAME"
+	printf -- "%s\n" "${html[@]}" > "${testdir}/${filename}"
 }
 
-declare -i SERVERPID=0
+declare -i serverpid=0
 function startServer {
 	section "Server"
-	cd "$OUTDIR"
-	"$NPM_HTTP" ./ -p $PORT -s -i0 & SERVERPID=$!
+	cd "${testdir}"
+	"${NPM_HTTP}" ./ -p ${port} -s -i0 & serverpid=$!
 	sleep 0.2
-	if ! kill -s 0 $SERVERPID; then
+	if ! kill -s 0 ${serverpid}; then
 		item "Server failed to start"
 		exit 1
 	fi
-	item "Listening on port $PORT"
-	item "Point your browser to $(hostname -s):$PORT to run the tests"
+	item "Listening on port ${port}"
+	item "Point your browser to $(hostname -s):${port} to run the tests"
 }
 
 function stopServer {
-	if (( SERVERPID )) && kill -s 0 $SERVERPID >/dev/null 2>&1; then
+	if (( serverpid )) && kill -s 0 ${serverpid} >/dev/null 2>&1; then
 		item "Stopping server"
-		kill $SERVERPID >/dev/null 2>&1 && wait $SERVERPID >/dev/null 2>&1 || true
+		kill ${serverpid} >/dev/null 2>&1 && wait ${serverpid} >/dev/null 2>&1 || true
 		item "Server stopped"
 	fi
 }
@@ -198,27 +201,27 @@ function main {
 
 	configure
 
-	echo -e "\e[1;37mOutput directory: $OUTDIR\e[0m"
+	echo -e "\e[1;37mOutput directory: ${testdir}\e[0m"
 	echo ""
 
-	test -d "$SRCDIR"
-	mkdir -p "$OUTDIR"
+	test -d "${srcdir}"
+	mkdir -p "${testdir}"
 
 	dependencies
 	modules
 	sources
-	HTMLBODY+=( '<script>mocha.setup("tdd");</script>' )
-	HTMLBODY+=(
+	htmlbody+=( '<script>mocha.setup("tdd");</script>' )
+	htmlbody+=(
 		'<script>'
 		'	window.expect = chai.expect;'
 		'	window.assert = chai.assert;'
 		'	/* chai.should(); */'
 		'</script>'
 	)
-	HTMLBODY+=( '<script src="dep/angular-mocks.js"></script>' )
-	HTMLBODY+=( '<script>var tests = [];</script>' )
+	htmlbody+=( '<script src="dep/angular-mocks.js"></script>' )
+	htmlbody+=( '<script>var tests = [];</script>' )
 	tests
-	HTMLBODY+=(
+	htmlbody+=(
 		'<script>'
 		'(function () {'
 		'	/* Resolve inter-test order-dependencies */'
@@ -259,19 +262,14 @@ function main {
 		'})();'
 		'</script>'
 	)
-	HTMLBODY+=( '<script>mocha.run();</script>' )
+	htmlbody+=( '<script>mocha.run();</script>' )
 	html
 
 	startServer
 	trap stopServer EXIT
 
-	read -sn 1 CHAR
-
-	stopServer
-
-	if [ "$CHAR" == "q" ]; then
-		exit 127
-	fi
+	repeater stopServer
 }
 
+clear
 main
