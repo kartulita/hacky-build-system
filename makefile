@@ -105,7 +105,7 @@ $(DOCDIR):
 $(JSDOCDIR):
 	$(MKDIRP) $(JSDOCDIR)
 
-%.min.js: %.js
+%.min.js: %.js | deps
 	$(UGLIFY) < $^ > $@ || ($(RMF) $@; false)
 
 $(BUNDLE): $(MODULES) | deps $(JSDIR)
@@ -114,7 +114,7 @@ $(BUNDLE): $(MODULES) | deps $(JSDIR)
 $(JSDIR)/%.js: $$(shell find $(SRCDIR)/%/ $(SOURCEPREDICATES)) | deps $(JSDIR)
 	concatenate.pl $^ | $(NGANNOTATE) > $@
 	
-$(JSDOC): $(SOURCES) | $(JSDOCDIR)
+$(JSDOC): $(SOURCES) | deps $(JSDOCDIR)
 	$(NPM_JSDOC) -r $(SRCDIR) -d $(JSDOCDIR) -c $(NPM_NGDOC_DIR)/conf.json -t $(NPM_NGDOC_DIR)/template
 
 diag:
