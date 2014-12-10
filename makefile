@@ -7,6 +7,7 @@ export DOCSRCDIR=$(SRCDIR)/$(DOCDIR)
 export TESTDIR=$(OUTDIR)/tests
 
 CLEANDIRS=$(OUTDIR)
+DISTCLEANPREDICATE=-type 'd' -and \( -name 'bower_components' -or -name 'node_modules' \) -prune
 
 export TITLE=Wheatley
 
@@ -79,7 +80,7 @@ clean:
 	$(RMRF) $(CLEANDIRS) || true
 
 distclean: clean
-	$(RMRF) $(NODE_MODULES) $(BOWER_COMPONENTS) || true
+	find . $(DISTCLEANPREDICATE) -exec $(RMRF) {} \; || true
 
 serve:
 	http-server ./ -p 8000 -s -i0 >/dev/null 2>&1
@@ -90,7 +91,10 @@ stats: all
 $(NODE_MODULES):
 	$(NPM) install
 
-$(BOWER_COMPONENTS):
+$(NODE_MODULES)/%:
+	$(NPM) install $(@:$(NODE_MODULES)/%=%)
+
+$(BOWER_COMPONENTS): $(NODE_MODULES)/bower
 	$(BOWER) install
 
 $(JSDIR):
