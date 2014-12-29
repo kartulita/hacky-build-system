@@ -28,6 +28,11 @@ SOURCES=$(shell find $(patsubst %/module.js, %/, $(MODULEHEADERS)) $(SOURCEPREDI
 BUNDLE=$(JSDIR)/bundle.js
 BUNDLE_MIN=$(BUNDLE:%.js=%.min.js)
 
+export STYLEPREDICATES=-type 'f' -name '*.css' -not -path '*/demos/*' -not -path '*/tests/*' -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/bower_components/*'
+STYLES=$(shell find $(patsubst %/module.js, %/, $(MODULEHEADERS)) $(STYLEPREDICATES))
+
+CSSBUNDLE=$(OUTDIR)/bundle.min.css
+
 export NPM=npm
 export NODE_MODULES=node_modules
 export NPM_NGDOC_DIR=$(NODE_MODULES)/angular-jsdoc
@@ -42,6 +47,8 @@ export BOWER_COMPONENTS=bower_components
 
 export UGLIFY=uglifyjs -c -m - 
 
+export UGLIFYCSS=uglifycss
+
 TAGS=sources modules bundle
 
 export RMRF=rm -rf --
@@ -52,11 +59,11 @@ export RMDIR=rmdir --ignore-fail-on-non-empty --
 SHELL=bash
 .SHELLFLAGS=-euo pipefail -c
 
-.PHONY: all deps bundle modules docs clean serve syntax test stats
+.PHONY: all deps bundle modules docs clean serve syntax test stats styles
 
 .SECONDEXPANSION:
 
-all: bundle modules docs
+all: bundle modules docs styles
 	@true
 
 bundle: $(BUNDLE_MIN)
@@ -87,7 +94,10 @@ serve:
 
 stats: all
 	stats.sh | less -r
-	
+
+styles: $(CSSBUNDLE)
+	@true
+
 $(NODE_MODULES):
 	$(NPM) install
 
@@ -97,8 +107,8 @@ $(NODE_MODULES)/%:
 $(BOWER_COMPONENTS): $(NODE_MODULES)/bower
 	$(BOWER) install
 
-$(JSDIR):
-	$(MKDIRP) $(JSDIR)
+$(OUTDIR):
+	$(MKDIRP) $(OUTDIR)
 
 $(DOCDIR):
 	$(MKDIRP) $(DOCDIR)
@@ -118,10 +128,16 @@ $(JSDIR)/%.js: $$(shell find $(SRCDIR)/%/ $(SOURCEPREDICATES)) | deps $(JSDIR)
 $(JSDOC): $(SOURCES) | deps $(JSDOCDIR)
 	#$(NPM_JSDOC) -r $(SRCDIR) -d $(JSDOCDIR) -c $(NPM_NGDOC_DIR)/conf.json -t $(NPM_NGDOC_DIR)/template
 
+$(CSSBUNDLE): $(STYLES) | $(OUTDIR)
+	$(UGLIFYCSS) $^ > $@
+	
 diag:
 	@echo "Modules: "
 	@printf -- " * %s\n" $(MODULES)
 	@echo
 	@echo "Sources: "
 	@printf -- " * %s\n" $(SOURCES)
+	@echo
+	@echo "Styles: "
+	@printf -- " * %s\n" $(STYLES)
 	@echo
