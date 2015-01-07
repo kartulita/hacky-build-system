@@ -126,7 +126,7 @@ $(JSDIR)/%.js: $$(shell find $(SRCDIR)/%/ $(SOURCEPREDICATES)) | deps $(JSDIR)
 	concatenate.pl $^ | $(NGANNOTATE) > $@
 	
 $(JSDOC): $(SOURCES) | deps $(JSDOCDIR)
-	$(NPM_JSDOC) -r $(SRCDIR) -d $(JSDOCDIR) -c $(NPM_NGDOC_DIR)/conf.json -t $(NPM_NGDOC_DIR)/template
+	$(NPM_JSDOC) $(SRCDIR) -d $(JSDOCDIR) -c build/jsdoc.json -t $(NPM_NGDOC_DIR)/template
 
 $(CSSBUNDLE): $(STYLES) | $(OUTDIR)
 	$(UGLIFYCSS) $^ > $@

@@ -1,0 +1,16 @@
+{
+	"plugins": [
+		"node_modules/jsdoc/plugins/markdown",
+		"node_modules/angular-jsdoc/plugins/ngdoc"
+	],
+	"templates": {
+		"cleverLinks": true,
+		"monospaceLinks": true
+	},
+	"source": {
+		"excludePattern": "(^\\.|bower_components|node_modules)"
+	},
+	"opts": {
+		"recurse": true
+	}
+}
