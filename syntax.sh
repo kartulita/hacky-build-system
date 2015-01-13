@@ -16,7 +16,11 @@ declare parallel=6
 
 function fmtOut {
 	while read line; do
+		if [[ "${line}" =~ "Dropping unused function argument" ]]; then
+			line="$(echo "${line}" | perl -pe 's/^WARN(ING)?:/Note:/i;')"
+		fi
 	 	echo "${line}" | perl -pe '
+			s/^NOTE:\s*(.*)$/\e[0;38;5;55mNote: \e[0;38;5;235m\1\e[0m/i;
 			s/^FAIL(ED)?:\s*/\e[1;31mFailed: \e[0m/i;
 			s/^ERROR:\s*/\e[1;31mError: \e[0m/i;
 			s/^WARN(ING)?:\s*/\e[1;33mWarning: \e[0m/i;
