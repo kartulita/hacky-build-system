@@ -6,6 +6,7 @@ source "$(dirname "$0")/repeater.sh"
 
 declare self="$0"
 
+declare -i verbose=0
 declare -a files=("")
 declare srcdir="${SRCDIR}"
 declare source_predicates="${SOURCEPREDICATES}"
@@ -43,6 +44,8 @@ function check {
 	else
 		if [ "${errs}" ]; then
 			errs="${errs}"$'\n'
+		elif ! (( verbose )); then
+			return
 		fi
 		printf -- "\e[1;32m * Pass: \e[0m%s\n%s" "${file}" "${errs}"
 	fi
@@ -71,6 +74,10 @@ function usage {
 
 if (( $# )) && [ "$1" == "-h" ]; then
 	usage
+fi
+
+if (( $# )) && [ "$1" == "-v" ]; then
+	verbose=1
 fi
 
 files=( "$@" )
