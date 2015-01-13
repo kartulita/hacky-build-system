@@ -6,7 +6,6 @@ source "$(dirname "$0")/repeater.sh"
 
 declare self="$0"
 
-declare verbose=0
 declare -a files=("")
 declare srcdir="${SRCDIR}"
 declare source_predicates="${SOURCEPREDICATES}"
@@ -20,11 +19,12 @@ function fmtOut {
 			line="$(echo "${line}" | perl -pe 's/^WARN(ING)?:/Note:/i;')"
 		fi
 	 	echo "${line}" | perl -pe '
-			s/^NOTE:\s*(.*)$/\e[0;38;5;55mNote: \e[0;38;5;235m\1\e[0m/i;
-			s/^FAIL(ED)?:\s*/\e[1;31mFailed: \e[0m/i;
-			s/^ERROR:\s*/\e[1;31mError: \e[0m/i;
-			s/^WARN(ING)?:\s*/\e[1;33mWarning: \e[0m/i;
+			s/^NOTE:\s*(.*)$/\e[0;38;5;55m - Note: \e[0;38;5;235m\1\e[0m/i;
+			s/^FAIL(ED)?:\s*/\e[1;31m - Failed: \e[0m/i;
+			s/^ERROR:\s*/\e[1;31m - Error: \e[0m/i;
+			s/^WARN(ING)?:\s*/\e[1;33m - Warning: \e[0m/i;
 			s/(Line \d+):/\e[1;36m\1:\e[0m/;
+			s/\[-:(\d+),(\d+)\]/\e[38;5;22m\1,\2\e[0m/;
 			print "   ";'
 	done
 }
@@ -38,11 +38,13 @@ function parse {
 function check {
 	local file="$1"
 	local errs="$(parse "${file}" | fmtOut)"
-	if (( verbose )); then
-		echo -e "\e[1;32m * Pass: \e[0m${file}"
-	fi
-	if [ "${errs}" ]; then
+	if [[ "${errs}" =~ "Error|Warning" ]]; then
 		printf -- "\e[1;31m * Fail: \e[1;37m%s\n%s\n" "${file}" "${errs}"
+	else
+		if [ "${errs}" ]; then
+			errs="${errs}"$'\n'
+		fi
+		printf -- "\e[1;32m * Pass: \e[0m%s\n%s" "${file}" "${errs}"
 	fi
 }
 
@@ -69,11 +71,6 @@ function usage {
 
 if (( $# )) && [ "$1" == "-h" ]; then
 	usage
-fi
-
-if (( $# )) && [ "$1" == "-v" ]; then
-	verbose=1
-	shift
 fi
 
 files=( "$@" )
