@@ -123,7 +123,7 @@ $(BUNDLE): $(MODULES) | deps $(JSDIR)
 	concatenate.pl $^ > $@
 
 $(JSDIR)/%.js: $$(shell find $(SRCDIR)/%/ $(SOURCEPREDICATES)) | deps $(JSDIR)
-	concatenate.pl $^ | $(NGANNOTATE) > $@
+	build-module.pl ${@:$(JSDIR)/%.js=%} | $(NGANNOTATE) > $@
 	
 $(JSDOC): $(SOURCES) | deps $(JSDOCDIR)
 	$(NPM_JSDOC) $(SRCDIR) -d $(JSDOCDIR) -c build/jsdoc.json -t $(NPM_NGDOC_DIR)/template
