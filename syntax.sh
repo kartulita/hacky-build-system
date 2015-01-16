@@ -11,7 +11,7 @@ declare -a files=("")
 declare srcdir="${SRCDIR}"
 declare source_predicates="${SOURCEPREDICATES}"
 declare ngannotate="${NGANNOTATE}"
-declare uglify="${UGLIFY}"
+declare uglify="${UGLIFYJS}"
 declare parallel=6
 
 function fmtOut {
@@ -78,6 +78,7 @@ fi
 
 if (( $# )) && [ "$1" == "-v" ]; then
 	verbose=1
+	uglify="${uglify} --lint"
 fi
 
 files=( "$@" )

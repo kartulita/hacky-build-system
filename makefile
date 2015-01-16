@@ -9,29 +9,37 @@ export TESTDIR=$(OUTDIR)/tests
 CLEANDIRS=$(OUTDIR)
 DISTCLEANPREDICATE=-type 'd' -and \( -name 'bower_components' -or -name 'node_modules' \) -prune
 
-export TITLE=Wheatley
-
 PWD=$(shell pwd)
 
 DOCS=$(patsubst $(SRCDIR)/%.md, %.html, $(wildcard $(DOCSRCDIR)/*.md))
 
+ifeq (,$(SELECT))
 MODULEHEADERS=$(shell find $(SRCDIR)/ -maxdepth 2 -type f -name 'module.js')
-
+else
+MODULEHEADERS=$(SELECT:%=$(SRCDIR)/%/module.js)
+endif
 MODULES=$(patsubst $(SRCDIR)/%/module.js, $(JSDIR)/%.js, $(MODULEHEADERS))
+MODULE_DIRS=$(MODULEHEADERS:%/module.js=%/)
 MODULES_MIN=$(MODULES:%.js=%.min.js)
 
 JSDOC=$(JSDOCDIR)/index.html
 
-export SOURCEPREDICATES=-type 'f' -name '*.js' -not -path '*/demos/*' -not -path '*/tests/*' -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/bower_components/*'
-SOURCES=$(shell find $(patsubst %/module.js, %/, $(MODULEHEADERS)) $(SOURCEPREDICATES))
+export EXCLUDEPREDICATES=-not -path '*/demos/*' -not -path '*/tests/*' -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/bower_components/*'
+
+export SOURCEPREDICATES=-type 'f' -name '*.js' $(EXCLUDEPREDICATES)
+SOURCES=$(shell find $(MODULE_DIRS) $(SOURCEPREDICATES))
 
 BUNDLE=$(JSDIR)/bundle.js
 BUNDLE_MIN=$(BUNDLE:%.js=%.min.js)
 
-export STYLEPREDICATES=-type 'f' -name '*.css' -not -path '*/demos/*' -not -path '*/tests/*' -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/bower_components/*'
-STYLES=$(shell find $(patsubst %/module.js, %/, $(MODULEHEADERS)) $(STYLEPREDICATES))
+export CSSPREDICATES=-type 'f' -name '*.css' $(EXCLUDEPREDICATES)
+CSS=$(shell find $(MODULE_DIRS) $(CSSPREDICATES))
 
 CSSBUNDLE=$(OUTDIR)/bundle.min.css
+
+export LESSPREDICATES=-type 'f' -name '*.less' $(EXCLUDEPREDICATES)
+LESS=$(shell find $(MODULE_DIRS) $(LESSPREDICATES))
+LESSBUNDLE=$(OUTDIR)/bundle.less
 
 export NPM=npm
 export NODE_MODULES=node_modules
@@ -45,9 +53,11 @@ export NPM_HTTP=http-server
 export BOWER=bower --allow-root
 export BOWER_COMPONENTS=bower_components
 
-export UGLIFY=uglifyjs -c -m - 
+export UGLIFYJS=uglifyjs -c -m - 
 
 export UGLIFYCSS=uglifycss
+
+export LESSC=lessc
 
 TAGS=sources modules bundle
 
@@ -95,7 +105,7 @@ serve:
 stats: all
 	stats.sh | less -r
 
-styles: $(CSSBUNDLE)
+styles: $(CSSBUNDLE) $(LESSBUNDLE)
 	@true
 
 $(NODE_MODULES):
@@ -116,28 +126,43 @@ $(DOCDIR):
 $(JSDOCDIR):
 	$(MKDIRP) $(JSDOCDIR)
 
-%.min.js: %.js | deps
-	$(UGLIFY) < $^ > $@ || ($(RMF) $@; false)
+%.min.js: %.js | $(NODE_MODULES)/uglify-js
+	$(UGLIFYJS) < $^ > $@ || ($(RMF) $@; false)
 
-$(BUNDLE): $(MODULES) | deps $(JSDIR)
+$(BUNDLE): $(MODULES) | $(JSDIR)
 	concatenate.pl $^ > $@
 
-$(JSDIR)/%.js: $$(shell find $(SRCDIR)/%/ $(SOURCEPREDICATES)) | deps $(JSDIR)
+$(JSDIR)/%.js: $(SRCDIR)/%/* $(SRCDIR)/%/* | $(JSDIR) $(NODE_MODULES)/ng-annotate
 	build-module.pl ${@:$(JSDIR)/%.js=%} | $(NGANNOTATE) > $@
-	
-$(JSDOC): $(SOURCES) | deps $(JSDOCDIR)
+
+$(JSDOC): $(SOURCES) | $(JSDOCDIR) $(NODE_MODULES)/jsdoc $(NODE_MODULES)/angular-jsdoc
 	$(NPM_JSDOC) $(SRCDIR) -d $(JSDOCDIR) -c build/jsdoc.json -t $(NPM_NGDOC_DIR)/template
 
-$(CSSBUNDLE): $(STYLES) | $(OUTDIR)
-	$(UGLIFYCSS) $^ > $@
-	
+$(CSSBUNDLE): $(CSS) | $(OUTDIR) $(LESSBUNDLE) $(NODE_MODULES)/uglifycss
+ifneq "$$^" ""
+	{ cat -- $^ && $(LESSC) $(LESSBUNDLE); } | $(UGLIFYCSS) > $@
+else
+	@echo "No CSS files found"
+endif
+
+$(LESSBUNDLE): $(LESS) | $(OUTDIR) $(NODE_MODULES)/less
+ifneq "$$^" ""
+	cat -- $^ > $@
+	$(LESSC) -l $@
+else
+	@echo "No LESS files found"
+endif	
+
 diag:
 	@echo "Modules: "
 	@printf -- " * %s\n" $(MODULES)
 	@echo
-	@echo "Sources: "
+	@echo "JS sources: "
 	@printf -- " * %s\n" $(SOURCES)
 	@echo
-	@echo "Styles: "
-	@printf -- " * %s\n" $(STYLES)
+	@echo "CSS styles: "
+	@printf -- " * %s\n" $(CSS)
+	@echo
+	@echo "LESS styles: "
+	@printf -- " * %s\n" $(LESS)
 	@echo
