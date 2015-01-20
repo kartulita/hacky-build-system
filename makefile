@@ -1,3 +1,5 @@
+PREAMBLE=/*** Mark K Cowan, github.com/battlesnake, github.com/kartulita ***/
+
 export SRCDIR=src
 export OUTDIR=out
 export JSDIR=$(OUTDIR)
@@ -53,7 +55,7 @@ export NPM_HTTP=http-server
 export BOWER=bower --allow-root
 export BOWER_COMPONENTS=bower_components
 
-export UGLIFYJS=uglifyjs -c -m - 
+export UGLIFYJS=uglifyjs -c -m --preamble='$(PREAMBLE)' - 
 
 export UGLIFYCSS=uglifycss
 

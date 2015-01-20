@@ -69,9 +69,11 @@ unshift(@sources, $header);
 # Render output
 {
 	select STDOUT;
+	print "/*** Module: $module ***/\n";
 	# Write sources into ngAnnotate
 	foreach my $source (@sources) {
 		print STDERR "Processing source $source\n" if $verbose;
+		print "\n/*** Source: $source ***/\n\n";
 		open my $fh_source, '<', $source or die "Failed to open $source\n";
 		print ';';
 		while (<$fh_source>) {
@@ -82,6 +84,7 @@ unshift(@sources, $header);
 	# Write templates into ngAnnotate
 	for my $template (@templates) {
 		print STDERR "Processing template $template\n" if $verbose;
+		print "\n/*** Template: $template ***/\n\n";
 		my $template_name = $template =~ s/^.*\///r;
 		open my $fh_template, '<', $template or die "Failed to open $template\n";
 		print join("\n", (
