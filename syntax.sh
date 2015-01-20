@@ -32,7 +32,7 @@ function fmtOut {
 
 function parse {
 	local file="$1"
-	(${ngannotate} < "${file}" | ${uglify}) 2>&1 1>/dev/null
+	(${ngannotate} < "${file}" | eval "${uglify}") 2>&1 1>/dev/null
 	"$(dirname "$0")/check.pl" -q "${file}" 2>&1
 }
 
