@@ -6,7 +6,7 @@ cd "$(dirname "$0")/../"
 
 declare width=$(( $(stty size | cut -f2 -d\ ) - 2))
 declare gzip_level=--best
-declare source_predicates="${SOURCEPREDICATES}"
+declare source_predicates="-name '*.js' -not \( -path '*/bower_components/*' -or -path '*/node_modules/*' \)"
 
 function table {
 	local head=1
@@ -53,7 +53,7 @@ function submodules {
 			local module="$(echo "${mod}" | perl -pe 's!^.*src/([^/]+)/?$!$1!')"
 			local files="$(eval find "${mod}" "${source_predicates}" | wc -l)"
 			local combined="out/${module}.js"
-			local minified="out/${module}.min.js"
+			local minified="out/min/${module}.js"
 
 			local lines_of_code="$(wc -l < "${combined}")"
 			local total_chars="$(wc -c < "${combined}")"
@@ -67,7 +67,7 @@ function submodules {
 	)"
 
 	local combined="out/bundle.js"
-	local minified="out/bundle.min.js"
+	local minified="out/min/bundle.js"
 
 	local files="$(echo "${subs}" | tail -n +2 | cut -f2 | paste -sd+ | bc)"
 	local lines_of_code="$(wc -l < "${combined}")"

@@ -1,170 +1,119 @@
-PREAMBLE=/*** Mark K Cowan, github.com/battlesnake, github.com/kartulita ***/
+SHELL = bash
+.SHELLFLAGS = -euo pipefail -c
 
-export SRCDIR=src
-export OUTDIR=out
-export JSDIR=$(OUTDIR)
-export DOCDIR=$(OUTDIR)/doc
-export JSDOCDIR=$(DOCDIR)/jsdoc
-export DOCSRCDIR=$(SRCDIR)/$(DOCDIR)
-export TESTDIR=$(OUTDIR)/tests
+export srcdir := src
+export outdir := out
+export mindir := $(outdir)/min
+export testdir := $(outdir)/tests
+export docdir := $(outdir)/doc
 
-CLEANDIRS=$(OUTDIR)
-DISTCLEANPREDICATE=-type 'd' -and \( -name 'bower_components' -or -name 'node_modules' \) -prune
+cleandirs := $(outdir)
 
-PWD=$(shell pwd)
+distcleanpredicate := -type 'd' -and \( -name 'bower_components' -or -name 'node_modules' \) -prune
 
-DOCS=$(patsubst $(SRCDIR)/%.md, %.html, $(wildcard $(DOCSRCDIR)/*.md))
+pwd := $(shell pwd)
 
-ifeq (,$(SELECT))
-MODULEHEADERS=$(shell find $(SRCDIR)/ -maxdepth 2 -type f -name 'module.js')
+modulejs = $(wildcard $(srcdir)/*/module.js)
+all_modules = $(modulejs:$(srcdir)/%/module.js=%)
+ifeq "$(select)" ""
+modules := $(all_modules)
 else
-MODULEHEADERS=$(SELECT:%=$(SRCDIR)/%/module.js)
+modules := $(select)
 endif
-MODULES=$(patsubst $(SRCDIR)/%/module.js, $(JSDIR)/%.js, $(MODULEHEADERS))
-MODULE_DIRS=$(MODULEHEADERS:%/module.js=%/)
-MODULES_MIN=$(MODULES:%.js=%.min.js)
 
-JSDOC=$(JSDOCDIR)/index.html
+ifneq ($(filter fields,$(modules)),)
+modules += dsl directive-proxy transformations validators
+endif
 
-export EXCLUDEPREDICATES=-not -path '*/demos/*' -not -path '*/tests/*' -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/bower_components/*'
+ifneq ($(filter schedule,$(modules)),)
+modules += timeline show-viewer
+endif
 
-export SOURCEPREDICATES=-type 'f' -name '*.js' $(EXCLUDEPREDICATES)
-SOURCES=$(shell find $(MODULE_DIRS) $(SOURCEPREDICATES))
+jsdoc := $(docdir)/index.html
 
-BUNDLE=$(JSDIR)/bundle.js
-BUNDLE_MIN=$(BUNDLE:%.js=%.min.js)
+export npm := npm
+export jsdoc_template := node_modules/angular-jsdoc/template
+PATH := $(pwd)/build:$(pwd)/node_modules/.bin:$(PATH)
 
-export CSSPREDICATES=-type 'f' -name '*.css' $(EXCLUDEPREDICATES)
-CSS=$(shell find $(MODULE_DIRS) $(CSSPREDICATES))
+export annotate := ng-annotate --add --single_quotes -
+export bower := bower --allow-root
+export uglifyjs := uglifyjs -c -m -
+export uglifycss := uglifycss
+export lessc := lessc -
+export jsdoc := jsdoc
 
-CSSBUNDLE=$(OUTDIR)/bundle.min.css
+export rmrf := rm -rf --
+export rmf := rm -f --
+export mkdirp := mkdir -p --
+export rmdir := rmdir --ignore-fail-on-non-empty --
 
-export LESSPREDICATES=-type 'f' -name '*.less' $(EXCLUDEPREDICATES)
-LESS=$(shell find $(MODULE_DIRS) $(LESSPREDICATES))
-LESSBUNDLE=$(OUTDIR)/bundle.less
+.PHONY: default all docs stats
 
-export NPM=npm
-export NODE_MODULES=node_modules
-export NPM_NGDOC_DIR=$(NODE_MODULES)/angular-jsdoc
-export NODE_BIN=$(NODE_MODULES)/.bin
-PATH := $(PWD)/build:$(PWD)/$(NODE_BIN):$(PATH)
-export NPM_JSDOC=jsdoc
-export NGANNOTATE=ng-annotate --add --single_quotes -
-export NPM_HTTP=http-server
+.SECONDARY:
 
-export BOWER=bower --allow-root
-export BOWER_COMPONENTS=bower_components
+default: all
 
-export UGLIFYJS=uglifyjs -c -m --preamble='$(PREAMBLE)' - 
+deps: | node_modules bower_components
 
-export UGLIFYCSS=uglifycss
+node_modules:
+	$(npm) install
 
-export LESSC=lessc
+bower_components: node_modules
+	$(bower) install
 
-TAGS=sources modules bundle
-
-export RMRF=rm -rf --
-export RMF=rm -f --
-export MKDIRP=mkdir -p --
-export RMDIR=rmdir --ignore-fail-on-non-empty --
-
-SHELL=bash
-.SHELLFLAGS=-euo pipefail -c
-
-.PHONY: all deps bundle modules docs clean serve syntax test stats styles
-
-.SECONDEXPANSION:
-
-all: bundle modules docs styles
-	@true
-
-bundle: $(BUNDLE_MIN)
-	@true
-
-modules: $(MODULES_MIN)
-	@true
-
-docs: $(JSDOC)
-	@true
-
-deps: | $(NODE_MODULES) $(BOWER_COMPONENTS)
-
-syntax:
-	@syntax.sh
-
-test:
-	@test.sh
-
-clean:
-	$(RMRF) $(CLEANDIRS) || true
-
-distclean: clean
-	find . $(DISTCLEANPREDICATE) -exec $(RMRF) {} \; || true
-
-serve:
-	http-server ./ -p 8000 -s -i0 >/dev/null 2>&1
-
-stats: all
+stats: $(mindir)/bundle.js
 	stats.sh | less -r
 
-styles: $(CSSBUNDLE) $(LESSBUNDLE)
+syntax: node_modules
+	syntax.sh
+
+all: $(mindir)/bundle.js $(mindir)/bundle.css $(outdir)/bundle.less $(modules:%=minify-module-%)
 	@true
 
-$(NODE_MODULES):
-	$(NPM) install
+clean:
+	$(rmrf) $(cleandirs)
 
-$(NODE_MODULES)/%:
-	$(NPM) install $(@:$(NODE_MODULES)/%=%)
+docs:
+	$(jsdoc) $(srcdir) -d $(docdir) -c build/jsdoc.json -t $(jsdoc_template)
 
-$(BOWER_COMPONENTS): $(NODE_MODULES)/bower
-	$(BOWER) install
+minify-module-%: $(mindir)/%.js $(mindir)/%.css $(outdir)/%.less | node_modules/ng-annotate
+	@true
 
-$(OUTDIR):
-	$(MKDIRP) $(OUTDIR)
+build-module-%: $(wildcard $(srcdir)/%/*) | $(outdir) node_modules
+	build-module.pl $(@:build-module-%=%) $(srcdir) $(outdir)
 
-$(DOCDIR):
-	$(MKDIRP) $(DOCDIR)
+$(outdir):
+	$(mkdirp) $(outdir)
 
-$(JSDOCDIR):
-	$(MKDIRP) $(JSDOCDIR)
+$(mindir):
+	$(mkdirp) $(mindir)
 
-%.min.js: %.js | $(NODE_MODULES)/uglify-js
-	$(UGLIFYJS) < $^ > $@ || ($(RMF) $@; false)
+$(docdir):
+	$(mkdirp) $(docdir)
 
-$(BUNDLE): $(MODULES) | $(JSDIR)
-	concatenate.pl $^ > $@
+$(testdir):
+	$(mkdirp) $(testdir)
 
-$(JSDIR)/%.js: $(SRCDIR)/%/* $(SRCDIR)/%/* | $(JSDIR) $(NODE_MODULES)/ng-annotate
-	build-module.pl ${@:$(JSDIR)/%.js=%} | $(NGANNOTATE) > $@
-
-$(JSDOC): $(SOURCES) | $(JSDOCDIR) $(NODE_MODULES)/jsdoc $(NODE_MODULES)/angular-jsdoc
-	$(NPM_JSDOC) $(SRCDIR) -d $(JSDOCDIR) -c build/jsdoc.json -t $(NPM_NGDOC_DIR)/template
-
-$(CSSBUNDLE): $(CSS) | $(OUTDIR) $(LESSBUNDLE) $(NODE_MODULES)/uglifycss
-ifneq "$$^" ""
-	{ cat -- $^ && $(LESSC) $(LESSBUNDLE); } | $(UGLIFYCSS) > $@
-else
-	@echo "No CSS files found"
-endif
-
-$(LESSBUNDLE): $(LESS) | $(OUTDIR) $(NODE_MODULES)/less
-ifneq "$$^" ""
+$(outdir)/bundle.js: $(modules:%=$(outdir)/%.js)
 	cat -- $^ > $@
-	$(LESSC) -l $@
-else
-	@echo "No LESS files found"
-endif	
 
-diag:
-	@echo "Modules: "
-	@printf -- " * %s\n" $(MODULES)
-	@echo
-	@echo "JS sources: "
-	@printf -- " * %s\n" $(SOURCES)
-	@echo
-	@echo "CSS styles: "
-	@printf -- " * %s\n" $(CSS)
-	@echo
-	@echo "LESS styles: "
-	@printf -- " * %s\n" $(LESS)
-	@echo
+$(outdir)/bundle.css: $(modules:%=$(outdir)/%.css)
+	cat -- $^ > $@
+
+$(outdir)/bundle.less: $(modules:%=$(outdir)/%.less)
+	cat -- $^ > $@
+
+$(mindir)/%.js: $(outdir)/%.js | node_modules $(mindir)
+	$(uglifyjs) < $< > $@ || ($(rmf) $@; false)
+
+$(mindir)/%.css: $(outdir)/%.css | node_modules $(mindir)
+	$(uglifycss) < $< > $@ || ($(rmf) $@; false)
+
+$(outdir)/%.js: build-module-%
+	@true
+
+$(outdir)/%.css: $(outdir)/%.less build-module-%
+	$(lessc) < $< >> $@
+
+$(outdir)/%.less: build-module-%
+	@true

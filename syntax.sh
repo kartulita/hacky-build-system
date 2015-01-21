@@ -4,14 +4,16 @@ set -euo pipefail
 
 source "$(dirname "$0")/repeater.sh"
 
+cd "$(dirname "$0")"/../
+
 declare self="$0"
 
 declare -i verbose=0
 declare -a files=("")
-declare srcdir="${SRCDIR}"
-declare source_predicates="${SOURCEPREDICATES}"
-declare ngannotate="${NGANNOTATE}"
-declare uglify="${UGLIFYJS}"
+declare srcdir="src"
+declare source_predicates="-name '*.js' -not \( -path '*/bower_components/*' -or -path '*/node_modules/*' \)"
+declare ngannotate="node_modules/.bin/ng-annotate --add - "
+declare uglify="node_modules/.bin/uglifyjs -c -m -"
 declare parallel=6
 
 function fmtOut {
