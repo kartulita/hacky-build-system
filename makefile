@@ -22,11 +22,11 @@ modules := $(select)
 endif
 
 ifneq ($(filter fields,$(modules)),)
-modules += dsl directive-proxy transformations validators
+modules := dsl directive-proxy transformations validators $(modules)
 endif
 
 ifneq ($(filter schedule,$(modules)),)
-modules += timeline show-viewer
+modules := timeline show-viewer $(modules)
 endif
 
 jsdoc := $(docdir)/index.html
