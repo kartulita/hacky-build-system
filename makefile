@@ -55,6 +55,8 @@ export rmdir := rmdir --ignore-fail-on-non-empty --
 default: all
 
 deps: | node_modules bower_components
+	@perl -e 'use IPC::Pipeline' || cpan install IPC::Pipeline
+	@perl -e 'use IPC::Open2' || cpan install IPC::Open2
 
 node_modules:
 	$(npm) install
