@@ -71,6 +71,10 @@ sub pipe_out {
 	}
 }
 
+sub prelude {
+	print "\n/*** This file is generated automatically, do not edit it as changes will not be preserved ***/\n";
+}
+
 # Bundle JS/HTML
 {
 	# Get angular module name
@@ -95,6 +99,7 @@ sub pipe_out {
 		my ($annotate_pid, $annotate) =
 			pipe_out "$outdir/$module.js", 'node_modules/.bin/ng-annotate', '--add', '--single-quotes', '-';
 		select $annotate;
+		prelude;
 		print "\n/*** Module: $module ***/\n";
 		# Write header
 		{
@@ -159,6 +164,7 @@ sub pipe_out {
 {
 	open my $css_out, '>', "$outdir/$module.css" or die "Failed to open CSS output file";
 	select $css_out;
+	prelude;
 	print "/*** Module: $module ***/\n";
 	# Write CSS
 	foreach my $source (@css) {
@@ -177,6 +183,7 @@ sub pipe_out {
 	# Write LESS
 	open my $less_out, '>', "$outdir/$module.less" or die "Failed to open LESS output file";
 	select $less_out;
+	prelude;
 	print "/*** Module: $module ***/\n";
 	foreach my $source (@less) {
 		print STDOUT "Processing stylesheet template $source\n" if $verbose;

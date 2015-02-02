@@ -18,7 +18,8 @@ all_modules = $(modulejs:$(srcdir)/%/module.js=%)
 ifeq "$(select)" ""
 modules := $(all_modules)
 else
-modules := $(select)
+comma := ,
+modules := $(subst $(comma), ,$(select))
 endif
 
 ifneq ($(filter fields,$(modules)),)
