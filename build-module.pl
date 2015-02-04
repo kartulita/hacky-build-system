@@ -157,6 +157,13 @@ sub prelude {
 		select STDOUT;
 		close $annotate;
 		waitpid $annotate_pid, 0;
+		if (my $err = $?) {
+			if ($err == -1) {
+				print "waitpid returned -1 for child process, unsure if error occured\n";
+			} else {
+				die "Child process returned $err";
+			}
+		}
 	}
 }
 
