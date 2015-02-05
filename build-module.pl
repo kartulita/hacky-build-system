@@ -14,8 +14,14 @@ if ($ARGV[0] eq '-v') {
 	shift @ARGV;
 }
 
+if ($ENV{'verbose'}) {
+	$verbose = 1;
+}
+
 if (!scalar(@ARGV)) {
-	print "Syntax: build-module.pl [-v] <module-name> <source-dir> <output-dir>" and die;
+	print "Syntax: build-module.pl [-v] <module-name> <source-dir> <output-dir>\n";
+	print "Set environment variable 'verbose' to non-empty as alternative to setting '-v'\n";
+	die;
 }
 
 my ($module, $srcdir, $outdir) = @ARGV;
@@ -56,14 +62,14 @@ my @less = ();
 # Returns a PID and a handle.  Data written to the handle is piped through the
 # specified command, then output to the specified file.
 sub pipe_out {
-	my ($out, @cmd) = @_;
+	my ($mode, $out, @cmd) = @_;
 	pipe my $from_parent, my $to_child;
 	if (my $pid = fork) {
 		close $from_parent;
 		return ($pid, $to_child);
 	} elsif (defined $pid) {
 		close $to_child;
-		open STDOUT, '>', $out or die "Failed to open output file $out";
+		open STDOUT, $mode, $out or die "Failed to open output file $out";
 		open STDIN, '<&'.fileno($from_parent) or die "Failed to connect pipe for $cmd[0]";
 		exec @cmd or die "Failed to start $cmd[0]";
 	} else {
@@ -73,6 +79,12 @@ sub pipe_out {
 
 sub prelude {
 	print "\n/*** This file is generated automatically, do not edit it as changes will not be preserved ***/\n";
+}
+
+sub reset_file {
+	my ($filename) = @_;
+	open my $truncate, '>', $filename or die "Failed to reset output file $filename";
+	close $truncate;
 }
 
 # Bundle JS/HTML
@@ -96,24 +108,57 @@ sub prelude {
 
 	# Render output
 	{
-		my ($annotate_pid, $annotate) =
-			pipe_out "$outdir/$module.js", 'node_modules/.bin/ng-annotate', '--add', '--single-quotes', '-';
-		select $annotate;
+		my $modulejs = "$outdir/$module.js";
+
+		my $annotate_pid = undef;
+		my $annotate = undef;
+		my $annotating = undef;
+
+		sub begin_annotate {
+			($annotating) = @_;
+			($annotate_pid, $annotate) =
+				pipe_out ">>", $modulejs, 'node_modules/.bin/ng-annotate', '--add', '--single-quotes', '-';
+			select $annotate;
+			return ($annotate_pid, $annotate);
+		}
+
+		sub end_annotate {
+			select STDOUT;
+			close $annotate;
+			waitpid $annotate_pid, 0;
+			if (my $err = $?) {
+				if ($err == -1) {
+					print "waitpid returned -1 for child process, unsure if error occured\n";
+				} else {
+					die "Failed to annotate $annotating, ng-annotate returned $err";
+				}
+			}
+			$annotate = undef;
+			$annotate_pid = undef;
+			$annotating = undef;
+		}
+
+		reset_file $modulejs;
+		begin_annotate '(prelude)';
 		prelude;
+		end_annotate
 		print "\n/*** Module: $module ***/\n";
 		# Write header
 		{
 			my $source = $header;
-			print STDOUT "Processing source $source\n" if $verbose;
+			print "Processing source $source\n" if $verbose;
+			begin_annotate $source;
 			print "\n/*** Source: $source ***/\n\n";
 			open my $fh_source, '<', $source or die "Failed to open $source\n";
 			print ';';
 			print while (<$fh_source>);
 			close $fh_source;
+			end_annotate;
 		}
 		# Write templates
 		for my $template (@templates) {
-			print STDOUT "Processing template $template\n" if $verbose;
+			print "Processing template $template\n" if $verbose;
+			begin_annotate $template;
 			print "\n/*** Template: $template ***/\n\n";
 			my $template_name = $template =~ s/^.*\///r;
 			open my $fh_template, '<', $template or die "Failed to open $template\n";
@@ -144,25 +189,18 @@ sub prelude {
 					'})(window.angular);'
 				));
 			close $fh_template;
+			end_annotate;
 		}
 		# Write sources
 		foreach my $source (@sources) {
-			print STDOUT "Processing source $source\n" if $verbose;
+			print "Processing source $source\n" if $verbose;
+			begin_annotate $source;
 			print "\n/*** Source: $source ***/\n\n";
 			open my $fh_source, '<', $source or die "Failed to open $source\n";
 			print ';';
 			print while (<$fh_source>);
 			close $fh_source;
-		}
-		select STDOUT;
-		close $annotate;
-		waitpid $annotate_pid, 0;
-		if (my $err = $?) {
-			if ($err == -1) {
-				print "waitpid returned -1 for child process, unsure if error occured\n";
-			} else {
-				die "Child process returned $err";
-			}
+			end_annotate;
 		}
 	}
 }
