@@ -12,8 +12,11 @@ export docdir := $(outdir)/doc
 # Directories to delete on clean
 cleandirs := $(outdir)
 
+# Transient folders (not included in dependency checking, deleted on distclean)
+transientpredicate := -name 'bower_components' -or -name 'node_modules'
+
 # Predicate for total cleaning
-distcleanpredicate := -type 'd' -and \( -name 'bower_components' -or -name 'node_modules' \) -prune
+distcleanpredicate := -type 'd' -and \( $(transientpredicate) \) -prune
 
 # Get makefile directory
 pwd := $(shell pwd)
@@ -49,6 +52,8 @@ ifneq ($(filter $(modules),timeline),)
 modules := language $(modules)
 endif
 
+export modules
+
 jsdoc := $(docdir)/index.html
 
 # Build-system dependencies
@@ -71,8 +76,9 @@ export rmdir := rmdir --ignore-fail-on-non-empty --
 
 .PHONY: default all docs stats
 
-# Not sure if we still need secondary expansion
 .SECONDARY:
+
+.SECONDEXPANSION:
 
 default: all
 
@@ -104,7 +110,7 @@ docs:
 minify-module-%: $(mindir)/%.js $(mindir)/%.css $(outdir)/%.less | node_modules/ng-annotate
 	@true
 
-build-module-%: $(wildcard $(srcdir)/%/*) | $(outdir) node_modules
+build-module-%: $$(shell find $(srcdir)/% '(' $(transientpredicate) ')' -prune -o '(' -name '*.js' -or -name '*.html' ')' ) | $(outdir) node_modules
 	build-module.pl $(@:build-module-%=%) $(srcdir) $(outdir)
 
 $(outdir):
