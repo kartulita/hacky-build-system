@@ -1,18 +1,24 @@
+# Subshell configuration
 SHELL = bash
 .SHELLFLAGS = -euo pipefail -c
 
+# Directories
 export srcdir := src
 export outdir := out
 export mindir := $(outdir)/min
 export testdir := $(outdir)/tests
 export docdir := $(outdir)/doc
 
+# Directories to delete on clean
 cleandirs := $(outdir)
 
+# Predicate for total cleaning
 distcleanpredicate := -type 'd' -and \( -name 'bower_components' -or -name 'node_modules' \) -prune
 
+# Get makefile directory
 pwd := $(shell pwd)
 
+# Get list of modules to build
 modulejs = $(wildcard $(srcdir)/*/module.js)
 all_modules = $(modulejs:$(srcdir)/%/module.js=%)
 ifeq "$(select)" ""
@@ -22,16 +28,22 @@ comma := ,
 modules := $(subst $(comma), ,$(select))
 endif
 
-ifneq ($(filter fields,$(modules)),)
+# Dependency resolution
+ifneq ($(filter $(modules),fields),)
 modules := dsl directive-proxy transformations validators $(modules)
 endif
 
-ifneq ($(filter schedule,$(modules)),)
+ifneq ($(filter $(modules),schedule),)
 modules := timeline show-viewer $(modules)
+endif
+
+ifneq ($(filter $(modules),timeline show-viewer err),)
+modules := language $(modules)
 endif
 
 jsdoc := $(docdir)/index.html
 
+# Build-system dependencies
 export npm := npm
 export jsdoc_template := node_modules/angular-jsdoc/template
 PATH := $(pwd)/build:$(pwd)/node_modules/.bin:$(PATH)
@@ -43,6 +55,7 @@ export uglifycss := uglifycss
 export lessc := lessc -
 export jsdoc := jsdoc
 
+# Command alisaes
 export rmrf := rm -rf --
 export rmf := rm -f --
 export mkdirp := mkdir -p --
@@ -50,6 +63,7 @@ export rmdir := rmdir --ignore-fail-on-non-empty --
 
 .PHONY: default all docs stats
 
+# Not sure if we still need secondary expansion
 .SECONDARY:
 
 default: all
