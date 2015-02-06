@@ -74,7 +74,7 @@ export rmf := rm -f --
 export mkdirp := mkdir -p --
 export rmdir := rmdir --ignore-fail-on-non-empty --
 
-.PHONY: default all docs stats
+.PHONY: default all docs stats release debug
 
 .SECONDARY:
 
@@ -100,6 +100,11 @@ syntax: node_modules
 
 all: $(mindir)/bundle.js $(mindir)/bundle.css $(outdir)/bundle.less $(modules:%=minify-module-%)
 	@true
+
+release: all
+	@true
+
+debug: $(outdir)/bundle.js $(outdir)/bundle.css $(outdir)/bundle.less
 
 clean:
 	$(rmrf) $(cleandirs)
@@ -148,3 +153,5 @@ $(outdir)/%.css: $(outdir)/%.less build-module-%
 
 $(outdir)/%.less: build-module-%
 	@true
+
+-include makefile.local
