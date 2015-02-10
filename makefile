@@ -12,11 +12,11 @@ export docdir := $(outdir)/doc
 # Directories to delete on clean
 cleandirs := $(outdir)
 
-# Transient folders (not included in dependency checking, deleted on distclean)
+# Transient folders (not included in dependency checking, deleted on fullclean)
 transientpredicate := -name 'bower_components' -or -name 'node_modules'
 
 # Predicate for total cleaning
-distcleanpredicate := -type 'd' -and \( $(transientpredicate) \) -prune
+fullcleanpredicate := -type 'd' -and \( $(transientpredicate) \) -prune
 
 # Get makefile directory
 pwd := $(shell pwd)
@@ -74,7 +74,7 @@ export rmf := rm -f --
 export mkdirp := mkdir -p --
 export rmdir := rmdir --ignore-fail-on-non-empty --
 
-.PHONY: default all docs stats release debug
+.PHONY: default clean fullclean all docs stats release debug
 
 .SECONDARY:
 
@@ -108,6 +108,9 @@ debug: $(outdir)/bundle.js $(outdir)/bundle.css $(outdir)/bundle.less
 
 clean:
 	$(rmrf) $(cleandirs)
+
+fullclean: clean
+	find $(fullcleanpredicate) -exec $(rmrf) {} \;
 
 docs:
 	$(jsdoc) $(srcdir) -d $(docdir) -c build/jsdoc.json -t $(jsdoc_template)
