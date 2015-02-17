@@ -55,9 +55,9 @@ function submodules {
 			local combined="out/${module}.js"
 			local minified="out/min/${module}.js"
 
-			local lines_of_code="$(wc -l < "${combined}")"
+			local lines_of_code="$(wc_nonblank.sh -l < "${combined}")"
 			local total_chars="$(wc -c < "${combined}")"
-			local mini="$(wc -c < "${minified}")"
+			local mini="$(wc_nonblank.sh -c < "${minified}")"
 			local minipc="$(echo "100 * ${mini} / ${total_chars}" | bc)"
 			local gzip="$(gzip ${gzip_level} < "${minified}" | wc -c)"
 			local gzippc="$(echo "100 * ${gzip} / ${total_chars}" | bc)"
@@ -70,7 +70,7 @@ function submodules {
 	local minified="out/min/bundle.js"
 
 	local files="$(echo "${subs}" | tail -n +2 | cut -f2 | paste -sd+ | bc)"
-	local lines_of_code="$(wc -l < "${combined}")"
+	local lines_of_code="$(wc_nonblank.sh -l < "${combined}")"
 	local total_chars="$(wc -c < "${combined}")"
 	local mini="$(wc -c < "${minified}")"
 	local minipc="$(echo "100 * ${mini} / ${total_chars}" | bc)"
@@ -97,20 +97,20 @@ function project {
 
 	local -a lines_of_code=( "$(
 		echo -e "Lines of code"
-		(cd src && eval find . "${source_predicates}" '-exec wc -l {} \;') | sort -n | tail -n $((ranks+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
-		(cd src && eval find . "${source_predicates}" '-exec cat {} \;') | wc -l
+		(cd src && eval find . "${source_predicates}" '-exec wc_nonblank.sh -l {} \;') | sort -n | tail -n $((ranks+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
+		(cd src && eval find . "${source_predicates}" '-exec cat {} \;') | wc_nonblank.sh -l
 	)" )
 
 	local -a total_chars=( "$(
 		echo -e "Total characters"
-		(cd src && eval find . "${source_predicates}" '-exec wc -c {} \;') | sort -n | tail -n $((ranks+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
-		(cd src && eval find . "${source_predicates}" '-exec cat {} \;') | wc -c
+		(cd src && eval find . "${source_predicates}" '-exec wc_nonblank.sh -c {} \;') | sort -n | tail -n $((ranks+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
+		(cd src && eval find . "${source_predicates}" '-exec cat {} \;') | wc_nonblank.sh -c
 	)" )
 
 	local -a longest_line=( "$(
 		echo -e "Longest lines"
-		(cd src && eval find . "${source_predicates}" '-exec wc -L {} \;') | sort -n | tail -n $((ranks+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
-		(cd src && eval find . "${source_predicates}" '-exec cat {} \;') | wc -L
+		(cd src && eval find . "${source_predicates}" '-exec wc_nonblank.sh -L {} \;') | sort -n | tail -n $((ranks+1)) | tac | tail -n +2 | sed -E 's/^\s+//g; s/\s+/\t/g' | column -t -s"	"
+		(cd src && eval find . "${source_predicates}" '-exec cat {} \;') | wc_nonblank.sh -L
 	)" )
 
 	paste -d"	" \
