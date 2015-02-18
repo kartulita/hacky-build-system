@@ -49,10 +49,11 @@ modules := language $(modules)
 endif
 
 ifneq ($(filter $(modules),timeline),)
-modules := language $(modules)
+modules := language date-picker $(modules)
 endif
 
 export modules
+module_release_targets := $(modules:%=minify-module-%)
 
 jsdoc := $(docdir)/index.html
 
@@ -92,13 +93,13 @@ node_modules:
 bower_components: node_modules
 	$(bower) install
 
-stats: $(mindir)/bundle.js
+stats: $(module_release_targets)
 	stats.sh | less -r
 
 syntax: node_modules
 	syntax.sh
 
-all: $(mindir)/bundle.js $(mindir)/bundle.css $(outdir)/bundle.less $(modules:%=minify-module-%)
+all: $(mindir)/bundle.js $(mindir)/bundle.css $(outdir)/bundle.less
 	@true
 
 release: all
