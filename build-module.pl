@@ -41,7 +41,7 @@ my @less = ();
 	find(
 		sub {
 			my $file = $File::Find::name;
-			return if $file =~ /\/(bower_components|node_modules|demos|tests)\//;
+			return if $file =~ /\/(bower_components|node_modules|demos|tests|utils)\//;
 			return if $file eq $header;
 			push(@sources, $file) if /\.js$/i;
 			push(@templates, $file) if /template\.html$/i;

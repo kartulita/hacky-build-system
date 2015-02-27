@@ -120,7 +120,9 @@ minify-module-%: $(mindir)/%.js $(mindir)/%.css $(outdir)/%.less | node_modules/
 	@true
 
 build-module-%: $$(shell find $(srcdir)/% '(' $(transientpredicate) ')' -prune -o '(' -name '*.js' -or -name '*.html' ')' ) | $(outdir) node_modules
-	build-module.pl $(@:build-module-%=%) $(srcdir) $(outdir)
+	$(eval module := $(@:build-module-%=%)) $(eval moddir := $(srcdir)/$(module))
+	if [ -e $(moddir)/makefile ]; then integration_target=$$(realpath $(outdir)) make --no-print-directory -C $(moddir) integrate; fi
+	build-module.pl $(module) $(srcdir) $(outdir)
 
 $(outdir):
 	$(mkdirp) $(outdir)
