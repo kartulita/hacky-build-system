@@ -93,8 +93,8 @@ node_modules:
 bower_components: node_modules
 	$(bower) install
 
-stats: $(module_release_targets)
-	stats.sh | less -r
+stats: release
+	stats.sh | less -r || true
 
 syntax: node_modules
 	syntax.sh
@@ -102,7 +102,7 @@ syntax: node_modules
 all: $(mindir)/bundle.js $(mindir)/bundle.css $(outdir)/bundle.less
 	@true
 
-release: all
+release: all $(module_release_targets)
 	@true
 
 debug: $(outdir)/bundle.js $(outdir)/bundle.css $(outdir)/bundle.less

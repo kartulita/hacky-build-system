@@ -142,13 +142,13 @@ sub reset_file {
 		begin_annotate '(prelude)';
 		prelude;
 		end_annotate
-		print "\n/*** Module: $module ***/\n";
+		print "\n\n/*!** Module: $module ***/\n";
 		# Write header
 		{
 			my $source = $header;
 			print "Processing source $source\n" if $verbose;
 			begin_annotate $source;
-			print "\n/*** Source: $source ***/\n\n";
+			print "\n\n/*!** Source: $source ***/\n\n";
 			open my $fh_source, '<', $source or die "Failed to open $source\n";
 			print ';';
 			print while (<$fh_source>);
@@ -159,7 +159,7 @@ sub reset_file {
 		for my $template (@templates) {
 			print "Processing template $template\n" if $verbose;
 			begin_annotate $template;
-			print "\n/*** Template: $template ***/\n\n";
+			print "\n\n/*!** Template: $template ***/\n\n";
 			my $template_name = $template =~ s/^.*\///r;
 			open my $fh_template, '<', $template or die "Failed to open $template\n";
 			print join("\n", (
@@ -195,7 +195,7 @@ sub reset_file {
 		foreach my $source (@sources) {
 			print "Processing source $source\n" if $verbose;
 			begin_annotate $source;
-			print "\n/*** Source: $source ***/\n\n";
+			print "\n\n/*!** Source: $source ***/\n\n";
 			open my $fh_source, '<', $source or die "Failed to open $source\n";
 			print ';';
 			print while (<$fh_source>);

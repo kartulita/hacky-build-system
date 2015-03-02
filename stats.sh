@@ -45,7 +45,11 @@ function submodules {
 		echo -e "Module\tFiles\tLines\tChars\tMini\t%\tGzip\t%\t"
 
 		local mod
-		for mod in src/*/
+		local -a modulePaths=( src/*/ )
+		if [ "$modules" ]; then
+			modulePaths=( $(printf -- "src/%s/\n" $modules) )
+		fi
+		for mod in "${modulePaths[@]}"
 		do
 			if ! [ -e "${mod}/module.js" ]; then
 				continue;
