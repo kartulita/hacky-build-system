@@ -32,25 +32,7 @@ modules := $(subst $(comma), ,$(select))
 endif
 
 # Dependency resolution
-ifneq ($(filter $(modules),err),)
-modules := schedule $(modules)
-endif
-
-ifneq ($(filter $(modules),fields),)
-modules := dsl directive-proxy transformations validators $(modules)
-endif
-
-ifneq ($(filter $(modules),schedule),)
-modules := timeline show-viewer $(modules)
-endif
-
-ifneq ($(filter $(modules),show-viewer),)
-modules := language $(modules)
-endif
-
-ifneq ($(filter $(modules),timeline),)
-modules := language date-picker $(modules)
-endif
+-include makefile.deps
 
 export modules
 module_release_targets := $(modules:%=minify-module-%)
