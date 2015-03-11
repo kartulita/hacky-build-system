@@ -103,41 +103,52 @@ minify-module-%: $(mindir)/%.js $(mindir)/%.css $(outdir)/%.less | node_modules/
 
 build-module-%: $$(shell find $(srcdir)/% '(' $(transientpredicate) ')' -prune -o '(' -name '*.js' -or -name '*.html' ')' ) | $(outdir) node_modules
 	$(eval module := $(@:build-module-%=%)) $(eval moddir := $(srcdir)/$(module))
-	if [ -e $(moddir)/makefile ]; then integration_target=$$(realpath $(outdir)) make --no-print-directory -C $(moddir) integrate; fi
-	build-module.pl $(module) $(srcdir) $(outdir)
+	@if [ -e $(moddir)/makefile ]; then \
+		echo -e "  \e[32mINTEGRATE\e[0m   $(module)" \
+		integration_target=$$(realpath $(outdir)) \
+			make --no-print-directory -C $(moddir) integrate; \
+	fi
+	@echo -e "  \e[32mBUILD\e[0m       $(module)"
+	@build-module.pl $(module) $(srcdir) $(outdir)
 
 $(outdir):
-	$(mkdirp) $(outdir)
+	@$(mkdirp) $(outdir)
 
 $(mindir):
-	$(mkdirp) $(mindir)
+	@$(mkdirp) $(mindir)
 
 $(docdir):
-	$(mkdirp) $(docdir)
+	@$(mkdirp) $(docdir)
 
 $(testdir):
-	$(mkdirp) $(testdir)
+	@$(mkdirp) $(testdir)
 
 $(outdir)/bundle.js: $(modules:%=$(outdir)/%.js)
-	cat -- $^ > $@
+	@echo -e "  \e[32mCONCATENATE\e[0m $(@:$(outdir)/%=%)"
+	@cat -- $^ > $@
 
 $(outdir)/bundle.css: $(modules:%=$(outdir)/%.css)
-	cat -- $^ > $@
+	@echo -e "  \e[32mCONCATENATE\e[0m $(@:$(outdir)/%=%)"
+	@cat -- $^ > $@
 
 $(outdir)/bundle.less: $(modules:%=$(outdir)/%.less)
-	cat -- $^ > $@
+	@echo -e "  \e[32mCONCATENATE\e[0m $(@:$(outdir)/%=%)"
+	@cat -- $^ > $@
 
 $(mindir)/%.js: $(outdir)/%.js | node_modules $(mindir)
-	$(uglifyjs) < $< > $@ || ($(rmf) $@; false)
+	@echo -e "  \e[32mUGLIFY-JS\e[0m   $(@:$(mindir)/%=%)"
+	@$(uglifyjs) < $< > $@ || ($(rmf) $@; false)
 
 $(mindir)/%.css: $(outdir)/%.css | node_modules $(mindir)
-	$(uglifycss) < $< > $@ || ($(rmf) $@; false)
+	@echo -e "  \e[32mUGLIFY-CSS\e[0m  $(@:$(mindir)/%=%)"
+	@$(uglifycss) < $< > $@ || ($(rmf) $@; false)
 
 $(outdir)/%.js: build-module-%
 	@true
 
 $(outdir)/%.css: $(outdir)/%.less build-module-%
-	$(lessc) < $< >> $@
+	@echo -e "  \e[32mLESS\e[0m        $(@:$(outdir)/%=%)"
+	@$(lessc) < $< >> $@
 
 $(outdir)/%.less: build-module-%
 	@true
