@@ -181,6 +181,10 @@ sub reset_file {
 			print join("\n", (
 					';',
 					'',
+					'	if (angular.version.minor < 3) {',
+					'		html = html.replace(/{\s*::\s*/g, \'{ \').replace(/"\s*::\s*/g, \'"\');',
+					'	}',
+					'',
 					"	angular.module('$angular_name')",
 					'		.run(function ($templateCache) {',
 					'			$templateCache.put(\'' . $template_name . '\', html)',
