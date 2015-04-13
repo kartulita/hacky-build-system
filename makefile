@@ -9,6 +9,10 @@ export mindir := $(outdir)/min
 export testdir := $(outdir)/tests
 export docdir := $(outdir)/doc
 
+themedir := $(srcdir)/err/themes
+themes := $(wildcard $(themedir)/*.less)
+theme_targets := $(themes:$(themedir)/%.less=$(outdir)/%.css)
+
 # Directories to delete on clean
 cleandirs := $(outdir)
 
@@ -46,7 +50,7 @@ PATH := $(pwd)/build:$(pwd)/node_modules/.bin:$(PATH)
 
 export annotate := ng-annotate --add --single_quotes -
 export bower := bower --allow-root
-export uglifyjs := uglifyjs -c -m -
+export uglifyjs := uglifyjs -c -m
 export uglifycss := uglifycss
 export lessc := lessc -
 export jsdoc := jsdoc
@@ -57,7 +61,7 @@ export rmf := rm -f --
 export mkdirp := mkdir -p --
 export rmdir := rmdir --ignore-fail-on-non-empty --
 
-.PHONY: default clean fullclean all docs stats release debug
+.PHONY: default clean fullclean all docs stats release debug themes
 
 .SECONDARY:
 
@@ -81,13 +85,13 @@ stats: release
 syntax: node_modules
 	syntax.sh
 
-all: $(mindir)/bundle.js $(mindir)/bundle.css $(outdir)/bundle.less
+all: debug
 	@true
 
-release: all $(module_release_targets)
+release: $(mindir)/bundle.js $(mindir)/bundle.css $(outdir)/bundle.less $(module_release_targets) themes
 	@true
 
-debug: $(outdir)/bundle.js $(outdir)/bundle.css $(outdir)/bundle.less
+debug: $(outdir)/bundle.js $(outdir)/bundle.css $(outdir)/bundle.less themes
 
 clean:
 	$(rmrf) $(cleandirs)
@@ -110,6 +114,14 @@ build-module-%: $$(shell find $(srcdir)/% '(' $(transientpredicate) ')' -prune -
 	fi
 	@echo -e "  \e[32mBUILD\e[0m       $(module)"
 	@build-module.pl $(module) $(srcdir) $(outdir)
+
+themes: $(theme_targets)
+	@true
+
+.SECONDEXPANSION:
+$(theme_targets): $(outdir)/bundle.less $$(patsubst $(outdir)/%.css,$(themedir)/%.less,$$@)
+	@echo -e "  \e[32mTHEME\e[0m       $(notdir $(basename $@))"
+	@printf -- '@import "%s";\n' $^ | $(lessc) -su=on -sm=off > $@
 
 $(outdir):
 	@$(mkdirp) $(outdir)
