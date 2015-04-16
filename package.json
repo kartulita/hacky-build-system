@@ -4,6 +4,9 @@
   "description": "Hacky build system",
   "main": "library",
   "devDependencies": {
+    "gulp": "^3.8.11",
+    "gulp-jshint": "^1.10.0",
+    "jshint-stylish-source": "^1.0.2",
     "less": "^2.2.0"
   },
   "scripts": {

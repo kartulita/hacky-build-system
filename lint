@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+
+export module="${1:-**}"
+
+if ! [ "${module}" == '**' ] && ! [ -d "src/${module}" ]; then
+	echo >&2 "Module '${module}' not found"
+	exit 1
+fi
+
+gulp lint
